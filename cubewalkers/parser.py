@@ -21,10 +21,13 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     # False -> 0 (ignore case)
     s = re.sub("False", "0", s, flags=re.IGNORECASE)
     s = re.sub("True", "1", s, flags=re.IGNORECASE)  # True -> 1 (ignore case)
-
+    
     # now switch to cpp logical operators
     s = re.sub("\s*\|\s*", " || ", s)
     s = re.sub("\s*\&\s*", " && ", s)
+    
+    # PBN support
+    s = re.sub("[<][<][=]"," < A__reserved_mask[a__reserved] && A__reserved_mask[a__reserved] <= ", s)
 
     # filter comments, blank lines
     lines = list(StringIO(s))
@@ -77,14 +80,14 @@ def bnet2rawkernel(rules: str,
 
     cpp_body = '''extern "C" __global__
 void {}(const bool* A__reserved_input,
-        const bool* A__reserved_mask,
+        const float* A__reserved_mask,
         bool* A__reserved_output,
         int t__reserved, int N__reserved, int W__reserved) {{
     int w__reserved = blockDim.x * blockIdx.x + threadIdx.x;
     int n__reserved = blockDim.y * blockIdx.y + threadIdx.y;
     int a__reserved = w__reserved + n__reserved*W__reserved;
     if(n__reserved < N__reserved && w__reserved < W__reserved){{
-        if(A__reserved_mask[a__reserved]==1{}){{'''.format(
+        if(A__reserved_mask[a__reserved]>0{}){{'''.format(
             kernel_name, time_clamp_string)
 
     for i, v in enumerate(varnames):

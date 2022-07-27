@@ -69,35 +69,37 @@ ABA,11,inf, !ABA
 ABA* = ABA
 C* = 0
 D* = 1
-E* = 1
+# E*=1 with prob 0.3, E*=0 with prob 0.7
+E* = 1 & (0<<=0.3) | 0 & (0.3<<=1)
 #"""
 
     experiment_string="""#
 ABA,3,5,1
 ABA,9,inf,!ABA
 #"""
-    
+
     myexperiment=cw.Experiment(experiment_string)
     mymodel=cw.Model(rules,experiment=myexperiment)
-    
+    print(mymodel.code)
     N=mymodel.n_variables
     for T,W in [(10000,1),(1000,10),(100,100),(10,1000),(10000,10000)]:
     #for T,W in [(15,16)]:
         averages_only = (T*W > 1e5)
         start = timer()
         mymodel.simulate_random_ensemble(n_time_steps=T,n_walkers=W,
-                                         averages_only=averages_only,maskfunction='synchronous',
-                                         threads_per_block=(8,8))
+                                         averages_only=averages_only,
+                                         maskfunction='synchronous_PBN',
+                                         threads_per_block=(32,32))
         end = timer()
         print(f'{averages_only=}, {T=}, {W=}, {N=}, {end-start}s')
         #print(mymodel.trajectories[:,0,:])
         #quit()
 
         if averages_only:
-            print(mymodel.trajectories[:,mymodel.vardict['ABA']].T)
+            print(mymodel.trajectories[:,mymodel.vardict['E']].T)
         else:
-            print(cp.mean(mymodel.trajectories[:,mymodel.vardict['ABA'],:],axis=1).T)
+            print(cp.mean(mymodel.trajectories[:,mymodel.vardict['E'],:],axis=1).T)
             
             #for w in range(W):
-            #    print(mymodel.trajectories[:,mymodel.vardict['ABA'],w])
+            #    print(mymodel.trajectories[:,mymodel.vardict['E'],w])
             

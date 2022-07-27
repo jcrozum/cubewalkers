@@ -17,15 +17,17 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
 
     # set updating scheme
     if maskfunction is None or maskfunction == 'asynchronous':
-        def maskfunction(
-            t, n, w, a): return cw_update_schemes.general_asynchronous_update_mask(t, n, w, a)
+        def maskfunction(t, n, w, a):
+            return cw_update_schemes.general_asynchronous_update_mask(t, n, w, a)
     elif maskfunction == 'fully_asynchronous':
-        def maskfunction(
-            t, n, w, a): return cw_update_schemes.fully_asynchronous_update_mask(t, n, w, a)
+        def maskfunction(t, n, w, a):
+            return cw_update_schemes.fully_asynchronous_update_mask(t, n, w, a)
     elif maskfunction == 'synchronous':
-        def maskfunction(
-            t, n, w, a): return cw_update_schemes.synchronous_update_mask(t, n, w, a)
-
+        def maskfunction(t, n, w, a):
+            return cw_update_schemes.synchronous_update_mask(t, n, w, a)
+    elif maskfunction == 'synchronous_PBN':
+        def maskfunction(t, n, w, a):
+            return cw_update_schemes.synchronous_update_mask_PBN(t, n, w, a)
     # initialize return array
     if averages_only:
         trajectories = cp.ones((T+1, N))
