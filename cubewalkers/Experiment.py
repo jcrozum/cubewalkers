@@ -21,15 +21,22 @@ class Experiment:
             else:
                 self.force_update_time_strings[varname] += ' || '
             if tf == 'inf':
-                self.overrides[varname] = ('(t__reserved < {}) && '.format(ti) +
-                                           self.overrides[varname] +
-                                           '|| (t__reserved >= {}) && {}'.format(ti, rule_override))
-                self.force_update_time_strings[varname] += '(t__reserved >= {})'.format(ti)
+                self.overrides[varname] = (
+                    '(t__reserved < {}) && '.format(ti) +
+                    self.overrides[varname] +
+                    '|| (t__reserved >= {}) && {}'.format(ti, rule_override))
+                self.force_update_time_strings[varname] += (
+                    '(t__reserved >= {})'.format(ti))
             else:
-                self.overrides[varname] = ('(t__reserved < {} || t__reserved > {}) && '.format(ti, tf) +
-                                           self.overrides[varname] +
-                                           '|| (t__reserved >= {} && t__reserved <= {}) && ({}) '.format(ti, tf, rule_override))
-                self.force_update_time_strings[varname] += '(t__reserved >= {} && t__reserved <= {})'.format(ti, tf)
+                self.overrides[varname] = (
+                    '(t__reserved < {} || t__reserved > {}) && '.format(ti, tf) +
+                    self.overrides[varname] +
+                    '|| (t__reserved >= {} && t__reserved <= {}) && ({}) '.format(
+                        ti, tf, rule_override))
+                
+                self.force_update_time_strings[varname] += (
+                    '(t__reserved >= {} && t__reserved <= {})'.format(ti, tf))
+
     def new_rule(self, old_rule: str) -> str:
         varname, old_function = [x.strip() for x in old_rule.split(',')]
         if varname not in self.overrides.keys():
@@ -38,5 +45,4 @@ class Experiment:
             new_function = re.sub("original_rule__reserved",
                                   old_function, self.overrides[varname])
             new_rule = varname + ',\t' + new_function + '\n'
-            # print(f'{old_rule=}\n{new_rule=}')
             return new_rule

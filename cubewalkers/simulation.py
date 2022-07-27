@@ -12,11 +12,9 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
     out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
 
     # compute blocks per grid based on number of walkers & variables and threads_per_block
-    # blocks_per_grid = (out.shape[0] // threads_per_block[0] + 1,
-    #                    out.shape[1] // threads_per_block[1] + 1)
     blocks_per_grid = (out.shape[1] // threads_per_block[1]+1,
                        out.shape[0] // threads_per_block[0]+1)
-    
+
     # set updating scheme
     if maskfunction is None or maskfunction == 'asynchronous':
         def maskfunction(
@@ -38,14 +36,14 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
 
     # simulation begins here
     for t in range(T):
-        arr=out.copy() # get values from update
-        
+        arr = out.copy()  # get values from update
+
         # compute which variables to update
         mask = maskfunction(t, N, W, arr)
 
         # run the update on the GPU
         kernel(blocks_per_grid, threads_per_block, (arr, mask, out, t, N, W))
-        
+
         # store results
         if averages_only:
             trajectories[t+1] = cp.mean(out, axis=1)

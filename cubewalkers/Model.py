@@ -47,7 +47,10 @@ class Model():
             self.n_time_steps = n_time_steps
         if n_walkers is not None:
             self.n_walkers = n_walkers
+        
         self.averages_only = averages_only
+        
         self.trajectories = simulation.simulate_random_ensemble(
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
-            averages_only=averages_only, maskfunction=maskfunction, threads_per_block=threads_per_block)
+            averages_only=averages_only, maskfunction=maskfunction, 
+            threads_per_block=threads_per_block)
