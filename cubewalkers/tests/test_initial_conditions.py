@@ -21,7 +21,8 @@ def test_initial_conditions_async():
                         model_name="test_simulation_asyncronous_model")
     
     initial_conditions = cp.array(
-        [[x%2 for x in range(test_model.n_variables)] for y in range(n_walkers)]).T
+        [[x%2 for x in range(test_model.n_variables)] for y in range(n_walkers)],
+        dtype=cp.bool_).T
     
     test_model.simulate_ensemble(
         maskfunction=cw.update_schemes.asynchronous,
@@ -42,7 +43,8 @@ def test_initial_conditions_sync():
                         model_name="test_simulation_syncronous_model")
     
     initial_conditions = cp.array(
-        [[x%2 for x in range(test_model.n_variables)] for y in range(n_walkers)]).T
+        [[x%2 for x in range(test_model.n_variables)] for y in range(n_walkers)],
+        dtype=cp.bool_).T
     
     test_model.simulate_ensemble(
         maskfunction=cw.update_schemes.synchronous,
