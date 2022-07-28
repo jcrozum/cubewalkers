@@ -6,6 +6,7 @@ import re
 class Experiment:
     """Stores information from user-specified experimental inputs.
     """
+
     def __init__(self, override_string: str, comment_char: str = '#') -> None:
         """_summary_
 
@@ -45,7 +46,7 @@ class Experiment:
                     self.overrides[varname] +
                     '|| (t__reserved >= {} && t__reserved <= {}) && ({}) '.format(
                         ti, tf, rule_override))
-                
+
                 self.force_update_time_strings[varname] += (
                     '(t__reserved >= {} && t__reserved <= {})'.format(ti, tf))
 
