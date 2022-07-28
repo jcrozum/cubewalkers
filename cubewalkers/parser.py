@@ -35,11 +35,11 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     # False -> 0 (ignore case)
     s = re.sub("False", "0", s, flags=re.IGNORECASE)
     s = re.sub("True", "1", s, flags=re.IGNORECASE)  # True -> 1 (ignore case)
-    
+
     # now switch to cpp logical operators
     s = re.sub("\s*\|\s*", " || ", s)
     s = re.sub("\s*\&\s*", " && ", s)
-    
+
     # PBN support
     s = re.sub("[<][<][=]",
                " < A__reserved_mask[a__reserved] && A__reserved_mask[a__reserved] <= ",
@@ -151,7 +151,7 @@ void {}(const bool* A__reserved_input,
     int a__reserved = w__reserved + n__reserved*W__reserved;
     if(n__reserved < N__reserved && w__reserved < W__reserved){{
         if(A__reserved_mask[a__reserved]>0{}){{'''.format(
-            kernel_name, time_clamp_string)
+        kernel_name, time_clamp_string)
 
     for i, v in enumerate(varnames):
         s = re.sub(r'\b{}\b'.format(

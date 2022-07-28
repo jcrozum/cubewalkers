@@ -1,5 +1,5 @@
 from __future__ import annotations
-from cubewalkers import simulation, parser
+from cubewalkers import simulation, parser, initial_conditions
 
 # for generating model names when the user doesn't want to specify them
 import string
@@ -20,6 +20,7 @@ class Model():
 
     def __init__(self,
                  rules: str,
+                 initial_biases: str = "",
                  model_name: str | None = None,
                  experiment: Experiment | None = None,
                  comment_char: str = '#',
@@ -33,7 +34,13 @@ class Model():
         rules : str
             Rules to input. If skip_clean is True (not default), then these are assumed to 
             have been cleaned.
-        kernel_name : str
+        initial_biases : str
+            Each line should be of the form
+            NodeName,bias
+            where NodeName is the name of the node, and bias is the probability that the node
+            will be initialized to 1 (instead of 0). Nodes whose names are not listed are given
+            a bias of 0.5 by default.
+        model_name : str
             A name for the kernel
         experiment : Experiment | None, optional
             A string specifying experimental conditions, by default None, in which case no 
@@ -55,6 +62,7 @@ class Model():
             Model._automatic_model_names_taken.add(self.name)
         else:
             self.name = model_name
+
         self.rules = parser.clean_rules(rules, comment_char=comment_char)
         self.kernel, self.varnames, self.code = parser.bnet2rawkernel(
             self.rules, self.name, experiment=experiment, skip_clean=True)
@@ -62,27 +70,29 @@ class Model():
         self.n_time_steps = n_time_steps
         self.n_walkers = n_walkers
         self.n_variables = len(self.varnames)
+        self.comment_char = comment_char
+        self.initial_biases = initial_biases
+        self.initialize_walkers()
 
-    def simulate_ensemble(self, n_time_steps: int | None = None,
-                                 n_walkers: int | None = None,
-                                 initial_states: cp.ndarray | None = None,
-                                 averages_only: bool = False,
-                                 maskfunction: callable | None = None,
-                                 threads_per_block: tuple[int, int] = (32, 32)) -> None:
+    def initialize_walkers(self) -> None:
+        """Generates initial conditions from internally stored data. See the 
+        initial_conditions module for details.
+        """
+        self.initial_states = initial_conditions.initial_walker_states(
+            self.initial_biases,
+            self.vardict,
+            self.n_walkers,
+            comment_char=self.comment_char)
+
+    def simulate_ensemble(self,
+                          averages_only: bool = False,
+                          maskfunction: callable | None = None,
+                          threads_per_block: tuple[int, int] = (32, 32)) -> None:
         """Simulates a random ensemble of walkers on the internally stored Boolean network.
         Results are stored in the trajectories attribute.
 
         Parameters
         ----------
-        n_time_steps : int | None, optional
-            If provided, the number of timesteps to simulate. Otherwise, uses internally
-            stored value. By default None.
-        n_walkers : int | None, optional
-            If provided, the number of walkers to simulate. Otherwise, uses internally
-            stored value. By default None.
-        initial_states : cp.ndarray | None, optional
-            n_variables x n_walkers array of initial states. Must be a cupy ndarray of 
-            type cupy.bool_. If None (default), initial states are randomly initialized.
         averages_only : bool, optional
             If True, stores only average node values at each timestep. 
             Otherwise, stores node values for each walker. By default False.
@@ -93,16 +103,15 @@ class Model():
             How many threads should be in each block for each dimension of the N x W array, 
             by default (32, 32). See CUDA documentation for details.
         """
-        if n_time_steps is not None:
-            self.n_time_steps = n_time_steps
-        if n_walkers is not None:
-            self.n_walkers = n_walkers
-        
+
+        if self.n_walkers != self.initial_states.shape[1]:
+            self.initialize_walkers()
+
         self.averages_only = averages_only
-        
+
         self.trajectories = simulation.simulate_ensemble(
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
-            initial_states=initial_states,
-            averages_only=averages_only, 
-            maskfunction=maskfunction, 
+            initial_states=self.initial_states,
+            averages_only=averages_only,
+            maskfunction=maskfunction,
             threads_per_block=threads_per_block)

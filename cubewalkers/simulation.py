@@ -4,11 +4,11 @@ from cubewalkers.update_schemes import synchronous
 
 
 def simulate_ensemble(kernel: cp.RawKernel,
-                             N: int, T: int, W: int,
-                             averages_only: bool = False,
-                             initial_states: cp.ndarray | None = None,
-                             maskfunction: callable = synchronous,
-                             threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                      N: int, T: int, W: int,
+                      averages_only: bool = False,
+                      initial_states: cp.ndarray | None = None,
+                      maskfunction: callable = synchronous,
+                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
     """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
 
     Parameters
