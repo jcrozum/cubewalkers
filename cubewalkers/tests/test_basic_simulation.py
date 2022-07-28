@@ -2,15 +2,15 @@ import cupy as cp
 import cubewalkers as cw
 
 test_rules ="""#
-ABA* = ABA
+A* = A
 C* = 0
 D* = 1
 E* = 1
 #"""
 
 experiment_string="""#
-ABA,3,5,1
-ABA,9,inf,!ABA
+A,3,5,1
+A,9,inf,!A
 #"""
     
 def test_simulation_syncronous():
@@ -24,7 +24,7 @@ def test_simulation_syncronous():
     
     test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
     
-    tail=cp.mean(test_model.trajectories[:,test_model.vardict['ABA'],:],axis=1)[4:]
+    tail=cp.mean(test_model.trajectories[:,test_model.vardict['A'],:],axis=1)[4:]
     expected_tail = cp.array([1 for x in range(6)] + [x%2 for x in range(91)])
     
     assert all(tail == expected_tail)
