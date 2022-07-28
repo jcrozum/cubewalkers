@@ -3,9 +3,10 @@ import cupy as cp
 from cubewalkers.update_schemes import synchronous
 
 
-def simulate_random_ensemble(kernel: cp.RawKernel,
+def simulate_ensemble(kernel: cp.RawKernel,
                              N: int, T: int, W: int,
                              averages_only: bool = False,
+                             initial_states: cp.ndarray | None = None,
                              maskfunction: callable = synchronous,
                              threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
     """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
@@ -20,6 +21,9 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
         Number of timesteps to simulate.
     W : int
         Number of ensemble walkers to simulate.
+    initial_states : cp.ndarray | None, optional
+        N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
+        (default), initial states are randomly initialized.
     averages_only : bool, optional
         If True, stores only average node values at each timestep. 
         Otherwise, stores node values for each walker. By default False.
@@ -38,7 +42,10 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
         values.
     """
     # initialize output array (will copy to input on first timestep)
-    out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
+    if initial_states is None:
+        out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
+    else:
+        out = initial_states.copy()
 
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (out.shape[1] // threads_per_block[1]+1,

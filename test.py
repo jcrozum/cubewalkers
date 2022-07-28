@@ -86,7 +86,7 @@ ABA,9,inf,!ABA
     #for T,W in [(15,16)]:
         averages_only = (T*W > 1e5)
         start = timer()
-        mymodel.simulate_random_ensemble(n_time_steps=T,n_walkers=W,
+        mymodel.simulate_ensemble(n_time_steps=T,n_walkers=W,
                                          averages_only=averages_only,
                                          maskfunction='synchronous_PBN',
                                          threads_per_block=(32,32))

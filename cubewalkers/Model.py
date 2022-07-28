@@ -8,6 +8,7 @@ import random
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from Experiment import Experiment
+    import cupy as cp
 
 
 class Model():
@@ -62,8 +63,9 @@ class Model():
         self.n_walkers = n_walkers
         self.n_variables = len(self.varnames)
 
-    def simulate_random_ensemble(self, n_time_steps: int | None = None,
+    def simulate_ensemble(self, n_time_steps: int | None = None,
                                  n_walkers: int | None = None,
+                                 initial_states: cp.ndarray | None = None,
                                  averages_only: bool = False,
                                  maskfunction: callable | None = None,
                                  threads_per_block: tuple[int, int] = (32, 32)) -> None:
@@ -78,6 +80,9 @@ class Model():
         n_walkers : int | None, optional
             If provided, the number of walkers to simulate. Otherwise, uses internally
             stored value. By default None.
+        initial_states : cp.ndarray | None, optional
+            n_variables x n_walkers array of initial states. Must be a cupy ndarray of 
+            type cupy.bool_. If None (default), initial states are randomly initialized.
         averages_only : bool, optional
             If True, stores only average node values at each timestep. 
             Otherwise, stores node values for each walker. By default False.
@@ -95,7 +100,9 @@ class Model():
         
         self.averages_only = averages_only
         
-        self.trajectories = simulation.simulate_random_ensemble(
+        self.trajectories = simulation.simulate_ensemble(
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
-            averages_only=averages_only, maskfunction=maskfunction, 
+            initial_states=initial_states,
+            averages_only=averages_only, 
+            maskfunction=maskfunction, 
             threads_per_block=threads_per_block)

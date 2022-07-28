@@ -22,7 +22,7 @@ def test_simulation_syncronous():
                         n_walkers=100,
                         model_name="test_simulation_syncronous_model")
     
-    test_model.simulate_random_ensemble(maskfunction=cw.update_schemes.synchronous)
+    test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
     
     tail=cp.mean(test_model.trajectories[:,test_model.vardict['ABA'],:],axis=1)[4:]
     expected_tail = cp.array([1 for x in range(6)] + [x%2 for x in range(91)])
@@ -38,7 +38,7 @@ def test_simulation_syncronous_constant():
                         n_walkers=100,
                         model_name="test_simulation_syncronous_model")
     
-    test_model.simulate_random_ensemble(maskfunction=cw.update_schemes.synchronous)
+    test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
     
     tail=cp.mean(test_model.trajectories[:,test_model.vardict['D'],:],axis=1)[4:]
     expected_tail = cp.array([1 for x in range(6)] + [1 for x in range(91)])
