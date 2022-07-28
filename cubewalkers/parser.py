@@ -9,6 +9,20 @@ if TYPE_CHECKING:
 
 
 def clean_rules(rules: str, comment_char: str = '#') -> str:
+    """Initial parsing of rules to standardize format.
+
+    Parameters
+    ----------
+    rules : str
+        Rule string to parse.
+    comment_char : str, optional
+        Empty lines and lines beginning with this character are ignored, by default '#'.
+
+    Returns
+    -------
+    str
+        A reformatted version of the input rules.
+    """
 
     # make sure we're in proper bnet format
     s = re.sub("\s*\*\s*=\s*", ",\t", rules)  # replace "*=" with ",\t"
@@ -27,7 +41,9 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     s = re.sub("\s*\&\s*", " && ", s)
     
     # PBN support
-    s = re.sub("[<][<][=]"," < A__reserved_mask[a__reserved] && A__reserved_mask[a__reserved] <= ", s)
+    s = re.sub("[<][<][=]",
+               " < A__reserved_mask[a__reserved] && A__reserved_mask[a__reserved] <= ",
+               s)
 
     # filter comments, blank lines
     lines = list(StringIO(s))
@@ -40,6 +56,23 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
 
 
 def adjust_rules_for_experiment(rules: str, experiment: str) -> str:
+    """Helper function that adjusts rules to incorporate the experimental conditions
+    specified in the experiment string.
+
+    Parameters
+    ----------
+    rules : str
+        Rules to adjust. Assumes these have been cleaned.
+    experiment : str
+        Experimental conditions to incorporate. Each line should be of the form
+        NodeName,StartTime,EndTime,RuleToSubstitute
+
+    Returns
+    -------
+    str
+        A new rules string that includes time-dependent modifications according to the
+        experiment string.
+    """
     if experiment is None:
         return rules
 
@@ -51,11 +84,41 @@ def adjust_rules_for_experiment(rules: str, experiment: str) -> str:
 
 
 def bnet2rawkernel(rules: str,
-                   kernel_name: str | None,
+                   kernel_name: str,
                    experiment: Experiment | None = None,
                    comment_char: str = '#',
                    skip_clean: bool = False) -> cp.RawKernel:
+    """Generates a CuPy RawKernel that encodes update rules and experimental conditions.
 
+    Parameters
+    ----------
+    rules : str
+        Rules to input. If skip_clean is True (not default), then these are assumed to have
+        been cleaned.
+    kernel_name : str
+        A name for the kernel
+    experiment : Experiment | None, optional
+        A string specifying experimental conditions, by default None, in which case no 
+        experimental conditions are incorporated into the rules.
+    comment_char : str, optional
+        In rules, empty lines and lines beginning with this character are ignored, by default
+        '#'.
+    skip_clean : bool, optional
+        Whether to skip the step of cleaning the rules, by default False.
+
+    Returns
+    -------
+    cp.RawKernel
+        A CuPy RawKernel that accepts arguments in the following fashion:
+        kernel(blocks_per_grid, threads_per_block, (
+            input_array_to_update, 
+            update_scheme_mask, 
+            output_array_after_update, 
+            current_time_step, 
+            number_of_nodes, 
+            number_of_walkers))
+        and modifies the output_array_after_update in-place.
+    """
     if not skip_clean:
         s = clean_rules(rules, comment_char=comment_char)
     else:
@@ -102,17 +165,5 @@ void {}(const bool* A__reserved_input,
                      )
 
     cpp_body += '\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}'
-
-#     cpp_body='''extern "C" __global__
-# void {}(const bool* A__reserved_input,
-#         const bool* A__reserved_mask,
-#         bool* A__reserved_output,
-#         int t__reserved, int N__reserved, int W__reserved) {{
-#     printf(\"%d %d %d %d\\n\",blockIdx.x, threadIdx.x, blockIdx.y, threadIdx.y);
-#     int idx0 = blockIdx.x * blockDim.x + threadIdx.x;
-#     int idx1 = blockIdx.y * blockDim.y + threadIdx.y;
-#     A__reserved_output[idx1 * W__reserved + idx0] = 1;
-#     }}
-#     '''.format(kernel_name)
 
     return cp.RawKernel(cpp_body, kernel_name), varnames, cpp_body

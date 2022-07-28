@@ -4,7 +4,19 @@ import re
 
 
 class Experiment:
+    """Stores information from user-specified experimental inputs.
+    """
     def __init__(self, override_string: str, comment_char: str = '#') -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        override_string : str
+            Experimental conditions to incorporate. Each line should be of the form
+            NodeName,StartTime,EndTime,RuleToSubstitute
+        comment_char : str, optional
+            Empty lines and lines beginning with this character are ignored, by default '#'.
+        """
         override_list = sorted(StringIO(override_string))
         self.overrides = {}
         self.force_update_time_strings = {}
@@ -38,6 +50,19 @@ class Experiment:
                     '(t__reserved >= {} && t__reserved <= {})'.format(ti, tf))
 
     def new_rule(self, old_rule: str) -> str:
+        """Modifies an input rule to incorporate the time-dependent experimental conditions
+        stored internally.
+
+        Parameters
+        ----------
+        old_rule : str
+            Rule to modify.
+
+        Returns
+        -------
+        str
+            Modified rule, with time dependence.
+        """
         varname, old_function = [x.strip() for x in old_rule.split(',')]
         if varname not in self.overrides.keys():
             return old_rule

@@ -1,13 +1,42 @@
 from __future__ import annotations
 import cupy as cp
-import cubewalkers.update_schemes as cw_update_schemes
+from cubewalkers.update_schemes import synchronous
 
 
 def simulate_random_ensemble(kernel: cp.RawKernel,
                              N: int, T: int, W: int,
                              averages_only: bool = False,
-                             maskfunction: callable | None = None,
-                             threads_per_block: tuple[int, int] = (32, 32)) -> cp.array:
+                             maskfunction: callable = synchronous,
+                             threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+    """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
+
+    Parameters
+    ----------
+    kernel : cp.RawKernel
+        CuPy RawKernel that provides the update functions (see parser module).
+    N : int
+        Number of nodes in the network.
+    T : int
+        Number of timesteps to simulate.
+    W : int
+        Number of ensemble walkers to simulate.
+    averages_only : bool, optional
+        If True, stores only average node values at each timestep. 
+        Otherwise, stores node values for each walker. By default False.
+    maskfunction : callable, optional
+        Function that returns a mask for selecting which node values to update. 
+        By default, uses the synchronous update scheme. See update_schemes for examples.
+    threads_per_block : tuple[int, int], optional
+        How many threads should be in each block for each dimension of the N x W array, 
+        by default (32, 32). See CUDA documentation for details.
+
+    Returns
+    -------
+    cp.ndarray
+        If averages_only is False (default), a T x N x W array of node values at each timestep
+        for each node and walker. If averages_only is True, a T x N array of average node
+        values.
+    """
     # initialize output array (will copy to input on first timestep)
     out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
 
@@ -15,19 +44,6 @@ def simulate_random_ensemble(kernel: cp.RawKernel,
     blocks_per_grid = (out.shape[1] // threads_per_block[1]+1,
                        out.shape[0] // threads_per_block[0]+1)
 
-    # set updating scheme
-    if maskfunction is None or maskfunction == 'asynchronous':
-        def maskfunction(t, n, w, a):
-            return cw_update_schemes.general_asynchronous_update_mask(t, n, w, a)
-    elif maskfunction == 'fully_asynchronous':
-        def maskfunction(t, n, w, a):
-            return cw_update_schemes.fully_asynchronous_update_mask(t, n, w, a)
-    elif maskfunction == 'synchronous':
-        def maskfunction(t, n, w, a):
-            return cw_update_schemes.synchronous_update_mask(t, n, w, a)
-    elif maskfunction == 'synchronous_PBN':
-        def maskfunction(t, n, w, a):
-            return cw_update_schemes.synchronous_update_mask_PBN(t, n, w, a)
     # initialize return array
     if averages_only:
         trajectories = cp.ones((T+1, N))
