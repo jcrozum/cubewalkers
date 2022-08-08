@@ -10,6 +10,12 @@ def test_update_asynchronous():
     for update in updates_per_walker:
         assert update == 1, 'One node should be updated for each walker'
 
+def test_update_asynchronous_PBN():
+    asynch = cw.update_schemes.asynchronous_PBN(None, n, w, None)
+    updates_per_walker = cp.sum(cp.ceil(asynch),axis=0)
+    for update in updates_per_walker:
+        assert update == 1, 'One node should be updated for each walker'
+
 def test_update_synchronous():
     synch = cw.update_schemes.synchronous(None, n, w, None)
     min = cp.min(synch,axis=0)
