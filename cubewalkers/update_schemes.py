@@ -21,9 +21,13 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
+    # much faster, but sometimes leads to wrong result if there are two maximums
+    # z = cp.random.random((n,w), dtype=cp.float32)
+    # z = z - cp.max(z, axis=0)
+    # z = 1 + cp.sign(z)
     uinds = cp.random.randint(0, n, (w,))
     z = cp.zeros((n, w), dtype=cp.float32)
-    z[uinds, cp.arange(w)] = cp.float32(1)
+    z[uinds, cp.arange(w)] = 1
     return z
 
 def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
@@ -48,8 +52,8 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """
     uinds = cp.random.randint(0, n, (w,))
     z = cp.zeros((n, w), dtype=cp.float32)
-    z[uinds, cp.arange(w)] = cp.float32(1)
-    x = cp.ones(w, dtype=cp.float32) - cp.random.random(w, dtype=cp.float32)
+    z[uinds, cp.arange(w)] = 1
+    x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
 
 def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
@@ -71,7 +75,9 @@ def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
-    return cp.random.choice([cp.float32(0), cp.float32(1)], (n, w))
+    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.around(z)
+    return z
 
 def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
@@ -93,9 +99,10 @@ def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    z = cp.random.choice([cp.float32(0), cp.float32(1)], (n, w))
-    x = cp.ones((n, w), dtype=cp.float32) - cp.random.random((n, w), dtype=cp.float32)
-    return x * z
+    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.subtract(z, 0.5)
+    z = cp.absolute(z) + z
+    return z
 
 def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
@@ -118,8 +125,9 @@ def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    z = cp.random.choice([cp.float32(0), cp.float32(1)], (n, w))
-    x = cp.ones(w, dtype=cp.float32) - cp.random.random(w, dtype=cp.float32)
+    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.around(z)
+    x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
 
 def synchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
@@ -164,7 +172,7 @@ def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    return cp.ones((n, w), dtype=cp.float32) - cp.random.random((n, w), dtype=cp.float32)
+    return 1 - cp.random.random((n, w), dtype=cp.float32)
 
 
 def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
@@ -189,5 +197,5 @@ def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarr
         Update mask array. Entry value can be used by update function for PBN support.
     """
     z = cp.ones((n, w), dtype=cp.float32)
-    x = cp.ones(w, dtype=cp.float32) - cp.random.random(w, dtype=cp.float32)
+    x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
