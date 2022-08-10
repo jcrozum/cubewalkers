@@ -36,20 +36,25 @@ class Experiment:
                 self.force_update_time_strings[varname] += ' || '
             if tf == 'inf':
                 self.overrides[varname] = (
-                    '(t__reserved < {}) && '.format(ti) +
-                    self.overrides[varname] +
-                    '|| (t__reserved >= {}) && {}'.format(ti, rule_override))
+                    f'(t__reserved < {ti}) && '
+                    f'{self.overrides[varname]}'
+                    f'|| (t__reserved >= {ti}) && {rule_override}'
+                )
+                
                 self.force_update_time_strings[varname] += (
-                    '(t__reserved >= {})'.format(ti))
+                    '(t__reserved >= {})'.format(ti)
+                )
             else:
                 self.overrides[varname] = (
-                    '(t__reserved < {} || t__reserved > {}) && '.format(ti, tf) +
-                    self.overrides[varname] +
-                    '|| (t__reserved >= {} && t__reserved <= {}) && ({}) '.format(
-                        ti, tf, rule_override))
+                    f'(t__reserved < {ti} || t__reserved > {tf}) && '
+                    f'{self.overrides[varname]}'
+                    f'|| (t__reserved >= {ti} && t__reserved <= {tf}) && '
+                    f'({rule_override}) '
+                )
 
                 self.force_update_time_strings[varname] += (
-                    '(t__reserved >= {} && t__reserved <= {})'.format(ti, tf))
+                    f'(t__reserved >= {ti} && t__reserved <= {tf})'
+                )
 
     def new_rule(self, old_rule: str) -> str:
         """Modifies an input rule to incorporate the time-dependent experimental conditions

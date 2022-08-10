@@ -51,7 +51,7 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     lines = filter(lambda x: not x.startswith(comment_char), lines)
     lines = filter(lambda x: not x.startswith('\n'), lines)
     lines = filter(lambda x: not x == '', lines)
-    
+
     # reassemble
     return "".join(lines)
 
@@ -142,28 +142,29 @@ def bnet2rawkernel(rules: str,
                     '(n__reserved=={} && ({}))'.format(i, force_string))
     time_clamp_string = ' || '.join(time_clamp_string_parts)
 
-    cpp_body = '''extern "C" __global__
-void {}(const bool* A__reserved_input,
-        const float* A__reserved_mask,
-        bool* A__reserved_output,
-        int t__reserved, int N__reserved, int W__reserved) {{
-    int w__reserved = blockDim.x * blockIdx.x + threadIdx.x;
-    int n__reserved = blockDim.y * blockIdx.y + threadIdx.y;
-    int a__reserved = w__reserved + n__reserved*W__reserved;
-    if(n__reserved < N__reserved && w__reserved < W__reserved){{
-        if(A__reserved_mask[a__reserved]>0{}){{'''.format(
-        kernel_name, time_clamp_string)
-
+    cpp_body = (
+        f'extern "C" __global__\n'
+        f'void {kernel_name}(const bool* A__reserved_input,\n'
+        f'        const float* A__reserved_mask,\n'
+        f'        bool* A__reserved_output,\n'
+        f'        int t__reserved, int N__reserved, int W__reserved) {{\n'
+        f'    int w__reserved = blockDim.x * blockIdx.x + threadIdx.x;\n'
+        f'    int n__reserved = blockDim.y * blockIdx.y + threadIdx.y;\n'
+        f'    int a__reserved = w__reserved + n__reserved*W__reserved;\n'
+        f'    if(n__reserved < N__reserved && w__reserved < W__reserved){{\n'
+        f'        if(A__reserved_mask[a__reserved]>0{time_clamp_string}){{'
+    )
     for i, v in enumerate(varnames):
-        s = re.sub(r'\b{}\b'.format(
-            v), 'A__reserved_input[{}*W__reserved+w__reserved]'.format(i), s)
+        s = re.sub(fr'\b{v}\b',
+                   f'A__reserved_input[{i}*W__reserved+w__reserved]',
+                   s)
 
     for ln, line in enumerate(StringIO(s)):
         update_function_string = line.split(',')[1].strip()
-        cpp_body += ('\n            if (n__reserved=={}){{A__reserved_output[a__reserved]='
-                     '{};}}'.format(
-                         ln, update_function_string)
-                     )
+        cpp_body += (
+            f'\n            if (n__reserved=={ln})'
+            f'{{A__reserved_output[a__reserved]={update_function_string};}}'
+        )
 
     cpp_body += '\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}'
 
