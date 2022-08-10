@@ -2,21 +2,21 @@ import cupy as cp
 import cubewalkers as cw
 
 # It is important that these are all source nodes for the purposes of the tests below
-test_rules = """#
-A* = A
-B* = B
-C* = C
-D* = D
-E* = E
-#"""
+test_rules = """
+                A* = A
+                B* = B
+                C* = C
+                D* = D
+                E* = E
+                """
 
-initial_biases = """#
-A,0
-B,1
-C,0
-D,1
-E,0
-#"""
+initial_biases = """
+                    A,0
+                    B,1
+                    C,0
+                    D,1
+                    E,0
+                    """
 
 
 def test_initial_condition_import():

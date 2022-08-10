@@ -11,13 +11,12 @@ A* = !A
 B* = A
 C* = B
 D* = D
-E* = D | C
 #"""
 
     mymodel = cw.Model(rules)
     # print(mymodel.code)
     N = mymodel.n_variables
-    for T, W in [(5, 500)]:
+    for T, W in [(3, 500)]:
         #initial_states = cp.array([[x%2 for x in range(N)] for y in range(W)], dtype=cp.bool_).T
         mymodel.n_time_steps = T
         mymodel.n_walkers = W

@@ -22,6 +22,7 @@ class Experiment:
         self.overrides = {}
         self.force_update_time_strings = {}
         for s in override_list:
+            s = s.lstrip()
             if len(s.strip()) == 0 or s[0] == comment_char:
                 continue
 

@@ -47,10 +47,11 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
 
     # filter comments, blank lines
     lines = list(StringIO(s))
+    lines = [l.lstrip() for l in lines]
     lines = filter(lambda x: not x.startswith(comment_char), lines)
     lines = filter(lambda x: not x.startswith('\n'), lines)
     lines = filter(lambda x: not x == '', lines)
-
+    
     # reassemble
     return "".join(lines)
 

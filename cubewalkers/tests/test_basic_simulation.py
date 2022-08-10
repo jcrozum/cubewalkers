@@ -1,17 +1,17 @@
 import cupy as cp
 import cubewalkers as cw
 
-test_rules = """#
-A* = A
-C* = 0
-D* = 1
-E* = 1
-#"""
+test_rules = """
+            A* = A
+            C* = 0
+            D* = 1
+            E* = 1
+            """
 
-experiment_string = """#
-A,3,5,1
-A,9,inf,!A
-#"""
+experiment_string = """
+                    A,3,5,1
+                    A,9,inf,!A
+                    """
 
 
 def test_simulation_syncronous():
