@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from cubewalkers import simulation, parser, initial_conditions
 
-from cubewalkers.update_schemes import synchronous  # for default update scheme
+# for default update scheme
+from cubewalkers.update_schemes import synchronous, asynchronous
 
 # for generating model names when the user doesn't want to specify them
 import string
@@ -119,6 +120,56 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
+    # TODO: Needs test, double check statistical reasoning
+    def trajectory_divergence(self,
+                              initial_state: cp.ndarray,
+                              n_time_steps: int | None = None,
+                              n_walkers: int | None = None,
+                              maskfunction: callable = asynchronous,
+                              threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Returns the variance of trajectories that begin at the specified initial state.
+
+        Parameters
+        ----------
+        initial_state : cp.ndarray
+            The initial state to use.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the asynchronous update scheme. See update_schemes for examples.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            Variance of trajectories
+        """
+
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        walkers_initial_state = cp.array(
+            [initial_state for i in range(n_walkers)]).T
+
+        avgs = simulation.simulate_ensemble(
+            self.kernel, self.n_variables,
+            n_time_steps, n_walkers,
+            initial_states=walkers_initial_state,
+            averages_only=True,
+            maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
+        return avgs * (1-avgs) # variance of Bernoulli distribution is p*(1-p)
+
     def dynamical_impact(self,
                          source_var: str,
                          n_time_steps: int | None = None,
@@ -159,7 +210,7 @@ class Model():
             n_time_steps = self.n_time_steps
         if n_walkers is None:
             n_walkers = self.n_walkers
-        
+
         source = self.vardict[source_var]
         return simulation.dynamical_impact(
             self.kernel,

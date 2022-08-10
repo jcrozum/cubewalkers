@@ -1,6 +1,6 @@
 from __future__ import annotations
 import cupy as cp
-from cubewalkers.update_schemes import synchronous
+from cubewalkers.update_schemes import synchronous, asynchronous
 
 
 def simulate_ensemble(kernel: cp.RawKernel,
