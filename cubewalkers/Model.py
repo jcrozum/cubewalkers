@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import cupy as cp
+
 from cubewalkers import simulation, parser, initial_conditions
 
 # for default update scheme
@@ -12,7 +14,6 @@ import random
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from Experiment import Experiment
-    import cupy as cp
 
 
 class Model():
@@ -120,19 +121,19 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
-    # TODO: Needs test, double check statistical reasoning
-    def trajectory_divergence(self,
-                              initial_state: cp.ndarray,
-                              n_time_steps: int | None = None,
-                              n_walkers: int | None = None,
-                              maskfunction: callable = asynchronous,
-                              threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+    def trajectory_variance(self,
+                            initial_state: cp.ndarray[cp.bool_],
+                            n_time_steps: int | None = None,
+                            n_walkers: int | None = None,
+                            maskfunction: callable = asynchronous,
+                            threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Returns the variance of trajectories that begin at the specified initial state.
+        Note that the covariances are not, in general, zero.
 
         Parameters
         ----------
-        initial_state : cp.ndarray
-            The initial state to use.
+        initial_state : cp.ndarray[cp.bool_]
+            The initial state to use. Will cast to cp.bool_ if other dtype is provided.
         n_time_steps : int | None, optional
             Number of timesteps to simulate. By default, use internally stored variable
             `n_time_steps`, which itself defaults to 1.
@@ -158,7 +159,7 @@ class Model():
             n_walkers = self.n_walkers
 
         walkers_initial_state = cp.array(
-            [initial_state for i in range(n_walkers)]).T
+            [cp.bool_(initial_state) for i in range(n_walkers)]).T
 
         avgs = simulation.simulate_ensemble(
             self.kernel, self.n_variables,
@@ -168,7 +169,10 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
-        return avgs * (1-avgs) # variance of Bernoulli distribution is p*(1-p)
+        # avgs[i] is P(node_i=1), and
+        # variance of Bernoulli distribution is p*(1-p),
+        # so avgs * (1-avgs) is the variance of each node
+        return avgs * (1-avgs)
 
     def dynamical_impact(self,
                          source_var: str,

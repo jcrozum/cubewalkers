@@ -23,7 +23,7 @@ D* = D
         
 
         start = timer()
-        dynamical_impact = mymodel.dynamical_impact('A')
+        trajectory_variance = mymodel.trajectory_variance([1,1,1,1])
         end = timer()
         
-        print(f'{dynamical_impact=}')
+        print(f'{trajectory_variance=}')
