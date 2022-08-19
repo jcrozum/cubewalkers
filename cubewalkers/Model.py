@@ -1,5 +1,11 @@
 from __future__ import annotations
+
+import cupy as cp
+
 from cubewalkers import simulation, parser, initial_conditions
+
+# for default update scheme
+from cubewalkers.update_schemes import synchronous, asynchronous
 
 # for generating model names when the user doesn't want to specify them
 import string
@@ -8,7 +14,6 @@ import random
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from Experiment import Experiment
-    import cupy as cp
 
 
 class Model():
@@ -86,7 +91,7 @@ class Model():
 
     def simulate_ensemble(self,
                           averages_only: bool = False,
-                          maskfunction: callable | None = None,
+                          maskfunction: callable = synchronous,
                           threads_per_block: tuple[int, int] = (32, 32)) -> None:
         """Simulates a random ensemble of walkers on the internally stored Boolean network.
         Results are stored in the trajectories attribute.
@@ -113,5 +118,113 @@ class Model():
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
             initial_states=self.initial_states,
             averages_only=averages_only,
+            maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
+    def trajectory_variance(self,
+                            initial_state: cp.ndarray[cp.bool_],
+                            n_time_steps: int | None = None,
+                            n_walkers: int | None = None,
+                            maskfunction: callable = asynchronous,
+                            threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Returns the variance of trajectories that begin at the specified initial state.
+        Note that the covariances are not, in general, zero.
+
+        Parameters
+        ----------
+        initial_state : cp.ndarray[cp.bool_]
+            The initial state to use. Will cast to cp.bool_ if other dtype is provided.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the asynchronous update scheme. See update_schemes for examples.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            Variance of trajectories
+        """
+
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        walkers_initial_state = cp.array(
+            [cp.bool_(initial_state) for i in range(n_walkers)]).T
+
+        avgs = simulation.simulate_ensemble(
+            self.kernel, self.n_variables,
+            n_time_steps, n_walkers,
+            initial_states=walkers_initial_state,
+            averages_only=True,
+            maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
+        # avgs[i] is P(node_i=1), and
+        # variance of Bernoulli distribution is p*(1-p),
+        # so avgs * (1-avgs) is the variance of each node
+        return avgs * (1-avgs)
+
+    def dynamical_impact(self,
+                         source_var: str | list[str],
+                         n_time_steps: int | None = None,
+                         n_walkers: int | None = None,
+                         maskfunction: callable = synchronous,
+                         threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the dynamical impact of the source node index on all others (including
+        itself, from time=0 to time=T).
+
+        Parameters
+        ----------
+        source_var : str | list[str]
+            Name(s) of variable(s) to find dynamical impact of.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            (n_time_steps+1) x n_variables array of dynamical impacts of the source at each 
+            time. Refer to vardict member variable to see ordering of variables. Note that 
+            the initial time impact is always maximal for the source node and minimal for all 
+            others.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        if isinstance(source_var, str):
+            source = self.vardict[source_var]
+        else:
+            source = [self.vardict[sv] for sv in source_var]
+        
+        return simulation.dynamical_impact(
+            self.kernel,
+            source,
+            self.n_variables,
+            n_time_steps,
+            n_walkers,
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)

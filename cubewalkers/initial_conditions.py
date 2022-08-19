@@ -32,11 +32,12 @@ def initial_walker_states(initial_biases: str,
     """
     # get just the relevant lines from the input
     lines = list(StringIO(initial_biases))
+    lines = [line.strip().lstrip() for line in lines]
     lines = filter(lambda x: not x.startswith(comment_char), lines)
     lines = filter(lambda x: not x.startswith('\n'), lines)
     lines = filter(lambda x: not x == '', lines)
 
-    bias_dict = {vardict[x.split(',')[0].strip()]: float(
+    bias_dict = {vardict[x.split(',')[0].strip().lstrip()]: float(
         x.split(',')[1]) for x in lines}
 
     initial_states = cp.random.choice(
