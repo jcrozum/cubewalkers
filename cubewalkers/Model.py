@@ -175,7 +175,7 @@ class Model():
         return avgs * (1-avgs)
 
     def dynamical_impact(self,
-                         source_var: str,
+                         source_var: str | list[str],
                          n_time_steps: int | None = None,
                          n_walkers: int | None = None,
                          maskfunction: callable = synchronous,
@@ -185,8 +185,8 @@ class Model():
 
         Parameters
         ----------
-        source_var : str
-            Name of variable to find dynamical impact of.
+        source_var : str | list[str]
+            Name(s) of variable(s) to find dynamical impact of.
         n_time_steps : int | None, optional
             Number of timesteps to simulate. By default, use internally stored variable
             `n_time_steps`, which itself defaults to 1.
@@ -215,7 +215,11 @@ class Model():
         if n_walkers is None:
             n_walkers = self.n_walkers
 
-        source = self.vardict[source_var]
+        if isinstance(source_var, str):
+            source = self.vardict[source_var]
+        else:
+            source = [self.vardict[sv] for sv in source_var]
+        
         return simulation.dynamical_impact(
             self.kernel,
             source,

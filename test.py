@@ -1,6 +1,6 @@
 import cupy as cp
 import cubewalkers as cw
-from timeit import default_timer as timer
+from cupyx.profiler import benchmark
 
 cp.set_printoptions(edgeitems=5)
 
@@ -16,14 +16,17 @@ D* = D
     mymodel = cw.Model(rules)
     # print(mymodel.code)
     N = mymodel.n_variables
-    for T, W in [(3, 500)]:
+    for T, W in [(3, 1500)]:
         #initial_states = cp.array([[x%2 for x in range(N)] for y in range(W)], dtype=cp.bool_).T
         mymodel.n_time_steps = T
         mymodel.n_walkers = W
         
-
-        start = timer()
-        trajectory_variance = mymodel.trajectory_variance([1,1,1,1])
-        end = timer()
+        print(
+            benchmark(
+                lambda : mymodel.simulate_ensemble(
+                    maskfunction=cw.update_schemes.synchronous), 
+                n_repeat=200)
+            )  
+        dynamical_impact = mymodel.dynamical_impact(['A','D'])
         
-        print(f'{trajectory_variance=}')
+        print(f'{dynamical_impact=}')

@@ -78,7 +78,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
     return trajectories
 
 
-def dynamical_impact(kernel: cp.RawKernel, source: int,
+def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
                      N: int, T: int, W: int,
                      maskfunction: callable = synchronous,
                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
@@ -89,6 +89,8 @@ def dynamical_impact(kernel: cp.RawKernel, source: int,
     ----------
     kernel : cp.RawKernel
         CuPy RawKernel that provides the update functions (see parser module).
+    source : int | list[int]
+        Index or indices of node(s) to perturb for dynamical impact calculation.
     N : int
         Number of nodes in the network.
     T : int
@@ -112,7 +114,7 @@ def dynamical_impact(kernel: cp.RawKernel, source: int,
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
-
+    
     # initial conditions
     outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
     outP = outU.copy()
