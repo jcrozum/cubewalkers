@@ -133,14 +133,9 @@ def bnet2rawkernel(rules: str,
     s = adjust_rules_for_experiment(s, experiment)
 
     # account for force updates due to control
-    time_clamp_string_parts = ['']
-    for i, v in enumerate(varnames):
-        if experiment is not None:
-            if v in experiment.force_update_time_strings:
-                force_string = experiment.force_update_time_strings[v]
-                time_clamp_string_parts.append(
-                    '(n__reserved=={} && ({}))'.format(i, force_string))
-    time_clamp_string = ' || '.join(time_clamp_string_parts)
+    time_clamp_string = ''
+    if experiment is not None:
+        time_clamp_string = experiment.time_clamp_string(varnames)
 
     cpp_body = (
         f'extern "C" __global__\n'
