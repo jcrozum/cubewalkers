@@ -1,8 +1,8 @@
 import cupy as cp
 import cubewalkers as cw
 
-n = 1000
-w = 1000
+n = 10000
+w = 10000
 
 def test_update_asynchronous():
     asynch = cw.update_schemes.asynchronous(None, n, w, None)

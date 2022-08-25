@@ -21,14 +21,14 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
-    # much faster, but sometimes leads to wrong result if there are two maximums
-    # z = cp.random.random((n,w), dtype=cp.float32)
-    # z = z - cp.max(z, axis=0)
-    # z = 1 + cp.sign(z)
-    uinds = cp.random.randint(0, n, (w,))
-    z = cp.zeros((n, w), dtype=cp.float32)
-    z[uinds, cp.arange(w)] = 1
-    return z
+    z = cp.random.random((n,w), dtype=cp.float32)
+    mz = cp.equal(z,cp.max(z, axis=0))
+
+    while cp.sum(mz) != w:
+        z = cp.random.random((n,w), dtype=cp.float32)
+        mz = cp.equal(z,cp.max(z, axis=0))
+
+    return mz.astype(cp.float32)
 
 def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
@@ -50,11 +50,15 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    uinds = cp.random.randint(0, n, (w,))
-    z = cp.zeros((n, w), dtype=cp.float32)
-    z[uinds, cp.arange(w)] = 1
+    z = cp.random.random((n,w), dtype=cp.float32)
+    mz = cp.equal(z,cp.max(z, axis=0))
+
+    while cp.sum(mz) != w:
+        z = cp.random.random((n,w), dtype=cp.float32)
+        mz = cp.equal(z,cp.max(z, axis=0))
+
     x = 1 - cp.random.random(w, dtype=cp.float32)
-    return x * z
+    return x * mz
 
 def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
