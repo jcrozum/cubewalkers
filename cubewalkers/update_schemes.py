@@ -1,6 +1,17 @@
 from __future__ import annotations
 import cupy as cp
 
+asynchronous_kernel = cp.RawKernel(r'''
+extern "C" __global__
+void asynchronous(const int* x1, int* z, int N, int W) {
+    int n_reserved = blockDim.x * blockIdx.x + threadIdx.x;
+    int w_reserved = blockDim.y * blockIdx.y + threadIdx.y;
+    if(n_reserved < N && w_reserved < W){
+    if(x1[w_reserved]==n_reserved){
+    int a_reserved = n_reserved * W + w_reserved;
+    z[a_reserved] = 1;}}
+}
+''', 'asynchronous')
 
 def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
@@ -21,14 +32,13 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
-    z = cp.random.random((n,w), dtype=cp.float32)
-    mz = cp.equal(z,cp.max(z, axis=0))
 
-    while cp.sum(mz) != w:
-        z = cp.random.random((n,w), dtype=cp.float32)
-        mz = cp.equal(z,cp.max(z, axis=0))
+    x1 = cp.floor(cp.random.random(size=(w,))*n)
+    x1 = x1.astype(cp.int_)
+    z = cp.zeros((n, w), dtype=cp.int_)
+    asynchronous_kernel((n//32+1,w//32+1), (32,32), (x1, z, n, w))
 
-    return mz.astype(cp.float32)
+    return z.astype(cp.float32)
 
 def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
@@ -50,15 +60,14 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    z = cp.random.random((n,w), dtype=cp.float32)
-    mz = cp.equal(z,cp.max(z, axis=0))
-
-    while cp.sum(mz) != w:
-        z = cp.random.random((n,w), dtype=cp.float32)
-        mz = cp.equal(z,cp.max(z, axis=0))
+    x1 = cp.floor(cp.random.random(size=(w,))*n)
+    x1 = x1.astype(cp.int_)
+    z = cp.zeros((n, w), dtype=cp.int_)
+    asynchronous_kernel((n//32+1,w//32+1), (32,32), (x1, z, n, w))
+    z = z.astype(cp.float32)
 
     x = 1 - cp.random.random(w, dtype=cp.float32)
-    return x * mz
+    return x * z
 
 def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
