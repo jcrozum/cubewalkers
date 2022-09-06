@@ -25,13 +25,13 @@ def simulate_ensemble(kernel: cp.RawKernel,
         N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
         (default), initial states are randomly initialized.
     averages_only : bool, optional
-        If True, stores only average node values at each timestep. 
+        If True, stores only average node values at each timestep.
         Otherwise, stores node values for each walker. By default False.
     maskfunction : callable, optional
-        Function that returns a mask for selecting which node values to update. 
+        Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array, 
+        How many threads should be in each block for each dimension of the N x W array,
         by default (32, 32). See CUDA documentation for details.
 
     Returns
@@ -64,7 +64,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
         arr = out.copy()  # get values from update
 
         # compute which variables to update
-        mask = maskfunction(t, N, W, arr)
+        mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block)
 
         # run the update on the GPU
         kernel(blocks_per_grid, threads_per_block, (arr, mask, out, t, N, W))
