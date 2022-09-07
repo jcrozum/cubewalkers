@@ -174,10 +174,9 @@ def bnet2rawkernel(rules: str,
 def network_rules_from_cana(BN: BooleanNetwork) -> str:
     """Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
 
-    Parameters: https://github.com/rionbr/CANA
     ----------
     BN : BooleanNetwork
-        CANA Boolean network
+        CANA Boolean network. See: https://github.com/rionbr/CANA
 
     Returns
     -------
@@ -200,7 +199,7 @@ def node_rule_from_cana(node: BooleanNode, int2name: dict[int, str] | None = Non
     Parameters
     ----------
     node : BooleanNode
-        CANA Boolean node
+        CANA Boolean node. See: https://github.com/rionbr/CANA
     int2name : dict[int, str], optional
         Dictionary with the node ids as keys and node name as values, by default None
 
