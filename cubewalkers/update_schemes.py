@@ -32,7 +32,10 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
-    tpb = kwargs["threads_per_block"]
+    try:
+        tpb = kwargs["threads_per_block"]
+    except:
+        tpb = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
     x1 = x1.astype(cp.int_)
     z = cp.zeros((n, w), dtype=cp.int_)
@@ -60,7 +63,10 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    tpb = kwargs["threads_per_block"]
+    try:
+        tpb = kwargs["threads_per_block"]
+    except:
+        tpb = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
     x1 = x1.astype(cp.int_)
     z = cp.zeros((n, w), dtype=cp.int_)
@@ -89,8 +95,12 @@ def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
     cp.ndarray
         Update mask array.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.around(z)
+    z = cp.ceil(prob-z)
     return z
 
 def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
@@ -113,10 +123,13 @@ def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.subtract(z, 0.5)
-    z = cp.absolute(z) + z
-    return z
+    mz = cp.ceil(prob-z)
+    return z * mz / prob
 
 def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
@@ -139,8 +152,12 @@ def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwar
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.around(z)
+    z = cp.ceil(prob-z)
     x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
 
