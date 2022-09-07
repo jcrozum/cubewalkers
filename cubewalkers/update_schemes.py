@@ -6,12 +6,15 @@ extern "C" __global__
 void asynchronous(const int* x1, int* z, int N, int W) {
     int n_reserved = blockDim.x * blockIdx.x + threadIdx.x;
     int w_reserved = blockDim.y * blockIdx.y + threadIdx.y;
-    if(n_reserved < N && w_reserved < W){
-    if(x1[w_reserved]==n_reserved){
-    int a_reserved = n_reserved * W + w_reserved;
-    z[a_reserved] = 1;}}
+    if(n_reserved < N && w_reserved < W) {
+        if(x1[w_reserved]==n_reserved) {
+            int a_reserved = n_reserved * W + w_reserved;
+            z[a_reserved] = 1;
+        }
+    }
 }
 ''', 'asynchronous')
+
 
 def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
@@ -33,15 +36,17 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
         Update mask array.
     """
     try:
-        tpb = kwargs["threads_per_block"]
+        threads_per_block = kwargs["threads_per_block"]
     except:
-        tpb = (32, 32)
+        threads_per_block = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
-    x1 = x1.astype(cp.int_)
-    z = cp.zeros((n, w), dtype=cp.int_)
-    asynchronous_kernel((n//tpb[0]+1,w//tpb[1]+1), tpb, (x1, z, n, w))
-
+    x1 = x1.astype(cp.int32)
+    z = cp.zeros((n, w), dtype=cp.int32)
+    blocks_per_grid = (w // threads_per_block[1]+1,
+                       n // threads_per_block[0]+1)
+    asynchronous_kernel(blocks_per_grid, threads_per_block, (x1, z, n, w))
     return z.astype(cp.float32)
+
 
 def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
@@ -68,13 +73,14 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
     except:
         tpb = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
-    x1 = x1.astype(cp.int_)
-    z = cp.zeros((n, w), dtype=cp.int_)
-    asynchronous_kernel((n//tpb[0]+1,w//tpb[1]+1), tpb, (x1, z, n, w))
+    x1 = x1.astype(cp.int32)
+    z = cp.zeros((n, w), dtype=cp.int32)
+    asynchronous_kernel((n//tpb[0]+1, w//tpb[1]+1), tpb, (x1, z, n, w))
     z = z.astype(cp.float32)
 
     x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
+
 
 def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
@@ -103,6 +109,7 @@ def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
     z = cp.ceil(prob-z)
     return z
 
+
 def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
@@ -130,6 +137,7 @@ def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.
     z = cp.random.random((n, w), dtype=cp.float32)
     mz = cp.ceil(prob-z)
     return z * mz / prob
+
 
 def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
@@ -160,6 +168,7 @@ def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwar
     z = cp.ceil(prob-z)
     x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
+
 
 def synchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that updates all nodes at each timestep.

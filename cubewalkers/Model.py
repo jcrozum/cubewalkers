@@ -166,7 +166,6 @@ class Model():
             averages_only=averages_only,
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
-        
 
     def trajectory_variance(self,
                             initial_state: cp.ndarray[cp.bool_],
@@ -276,4 +275,33 @@ class Model():
             n_walkers,
             lookup_tables=self.lookup_tables,
             maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
+    def derrida_coefficient(self,
+                            n_walkers: int | None = None,
+                            threads_per_block: tuple[int, int] = (32, 32)) -> float:
+        """Estimates the Derrida coefficient.
+
+        Parameters
+        ----------
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the Coefficient. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        float
+            Estimate of the Derrida coefficient.
+        """
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        return simulation.derrida_coefficient(
+            self.kernel,
+            self.n_variables,
+            n_walkers,
+            lookup_tables=self.lookup_tables,
             threads_per_block=threads_per_block)

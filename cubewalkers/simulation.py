@@ -4,6 +4,7 @@ from cubewalkers.update_schemes import synchronous
 
 import cubewalkers as cw
 
+
 def simulate_ensemble(kernel: cp.RawKernel,
                       N: int, T: int, W: int,
                       lookup_tables: cp.ndarray | None = None,
@@ -56,7 +57,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
     # table (note that the LUTs must be padded to equal lengths)
     if lookup_tables is not None:
         L = len(lookup_tables[0])
-    
+
     # initialize output array (will copy to input on first timestep)
     if initial_states is None:
         out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
@@ -80,10 +81,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
         # run the update on the GPU
         if lookup_tables is None:
-            kernel(blocks_per_grid, threads_per_block, (arr, mask, out, t, N, W))
+            kernel(blocks_per_grid, threads_per_block,
+                   (arr, mask, out, t, N, W))
         else:
             kernel(blocks_per_grid, threads_per_block,
-               (arr, mask, out, lookup_tables, t, N, W, L))
+                   (arr, mask, out, lookup_tables, t, N, W, L))
         # store results
         if averages_only:
             trajectories[t+1] = cp.mean(out, axis=1)
@@ -135,12 +137,12 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
-    
+
     # If we're using lookup tables for the rule evaluation, record the size of the largest
     # table (note that the LUTs must be padded to equal lengths)
     if lookup_tables is not None:
         L = len(lookup_tables[0])
-    
+
     # initial conditions
     outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
     outP = outU.copy()
@@ -148,38 +150,40 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
 
     # initialize impact array
     impact = -cp.ones((T+1, N))
-    # compute impact[0] = cp.mean(outU ^ outP, axis = 1), but more efficiently 
+    # compute impact[0] = cp.mean(outU ^ outP, axis = 1), but more efficiently
     # beause we know outU and outP only differ in the value of the source initially
     impact[0] = cp.zeros((N,))
     impact[0][source] = 1.
-    
+
     # begin simulation
     for t in range(T):
         arrU = outU.copy()  # get values from update
         arrP = outP.copy()
-        
+
         mask = maskfunction(t, N, W, arrU)
-        
+
         # run the update on the GPU for the two states
         if lookup_tables is None:
-            kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, t, N, W))
-            kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, t, N, W))
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrU, mask, outU, t, N, W))
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrP, mask, outP, t, N, W))
         else:
             kernel(blocks_per_grid, threads_per_block,
-               (arrU, mask, outU, lookup_tables, t, N, W, L))
+                   (arrU, mask, outU, lookup_tables, t, N, W, L))
             kernel(blocks_per_grid, threads_per_block,
-               (arrP, mask, outP, lookup_tables, t, N, W, L))
-        
-        impact[t+1] = cp.mean(outU ^ outP, axis = 1)
-    
+                   (arrP, mask, outP, lookup_tables, t, N, W, L))
+
+        impact[t+1] = cp.mean(outU ^ outP, axis=1)
+
     return impact
 
 
 def derrida_coefficient(kernel: cp.RawKernel,
-                     N: int, W: int,
-                     maskfunction: callable = synchronous,
-                     threads_per_block: tuple[int, int] = (16, 16)) -> float:
-    """Computes the derrida coefficient.
+                        N: int, W: int,
+                        lookup_tables: cp.ndarray | None = None,
+                        threads_per_block: tuple[int, int] = (32, 32)) -> float:
+    """Estimates the Derrida coefficient.
 
     Parameters
     ----------
@@ -189,41 +193,49 @@ def derrida_coefficient(kernel: cp.RawKernel,
         Number of nodes in the network.
     W : int
         Number of ensemble walkers to simulate.
-    maskfunction : callable, optional
-        Function that returns a mask for selecting which node values to update. 
-        By default, uses the synchronous update scheme. See update_schemes for examples.
-        For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
-        trajectory is used.
+    lookup_tables : cp.ndarray, optional
+        A merged lookup table that contains the output column of each rule's
+        lookup table (padded by False values). If provided, it is passed to the kernel,
+        in which case the kernel must be a lookup-table-based kernel. If None (default),
+        then the kernel must have the update rules internally encoded.
     threads_per_block : tuple[int, int], optional
         How many threads should be in each block for each dimension of the N x W array, 
-        by default (16, 16). See CUDA documentation for details.
+        by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------
     float
         Derrida coefficient
     """
+
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
-    
+
+    if lookup_tables is not None:
+        L = len(lookup_tables[0])
+
     # initial conditions
-    #outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
-    outU = cp.around(cp.random.random((N,W))).astype(cp.bool_)
+    outU = cp.around(cp.random.random((N, W))).astype(cp.bool_)
     outP = outU.copy()
-    #perturbed_var = cp.random.choice(range(N), W)
     perturbed_var = cp.random.randint(N, size=W)
     for idx, var in enumerate(perturbed_var):
         outP[var, idx] = ~outP[var, idx]
-    
+
     # get values from update
     arrU = outU.copy()  # get values from update
     arrP = outP.copy()
-    
-    mask = maskfunction(1, N, W, arrU)
-    
+
+    mask = synchronous(None, N, W, None)  # only defined for synchronous update
+
     # run the update on the GPU for the two states
-    kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
-    kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, 1, N, W))    
-    
-    return cp.mean(outU ^ outP)
+    if lookup_tables is None:
+        kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
+        kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, 1, N, W))
+    else:
+        kernel(blocks_per_grid, threads_per_block,
+               (arrU, mask, outU, lookup_tables, 1, N, W, L))
+        kernel(blocks_per_grid, threads_per_block,
+               (arrP, mask, outP, lookup_tables, 1, N, W, L))
+
+    return cp.mean(outU ^ outP)*N
