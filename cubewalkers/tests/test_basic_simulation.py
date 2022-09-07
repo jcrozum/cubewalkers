@@ -40,6 +40,48 @@ def test_simulation_syncronous():
 
     assert all(tail == expected_tail)
 
+def test_lut_simulation_synchronous():
+    lut_test_rules="""
+    A*=0
+    B*=A or not B
+    C*=C
+    """
+    lut_test_regulators =[
+        [],
+        [0,1],
+        [2]
+    ]
+    lut_test_lut=cp.array([
+        [0,0,0,0],
+        [1,0,1,1],
+        [0,1,0,0],
+    ],dtype=cp.bool_)
+    
+    lut_test_initial_states=cp.array([
+        [1,0],
+        [1,0],
+        [1,0]
+    ])
+    test_model_with_rules = cw.Model(lut_test_rules,
+                          comment_char='#',
+                          n_time_steps=100,
+                          n_walkers=2,
+                          model_name="lut_test_with_rules")
+    test_model_with_lut = cw.Model(
+        lookup_tables=lut_test_lut,
+        node_regulators=lut_test_regulators,
+        n_time_steps=100,
+        n_walkers=2,
+        model_name="lut_test_with_lut")
+    
+    test_model_with_rules.initial_states=lut_test_initial_states
+    test_model_with_lut.initial_states=lut_test_initial_states
+    
+    test_model_with_rules.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
+    test_model_with_lut.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
+    
+    assert(cp.sum(test_model_with_rules.trajectories!=test_model_with_lut.trajectories)==0)
+ 
 
 def test_simulation_syncronous_constant():
     test_experiment = cw.Experiment(experiment_string)

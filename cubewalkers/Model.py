@@ -1,8 +1,9 @@
 from __future__ import annotations
+import warnings
 
 import cupy as cp
 
-from cubewalkers import simulation, parser, initial_conditions
+from cubewalkers import conversions, simulation, parser, initial_conditions
 
 # for default update scheme
 from cubewalkers.update_schemes import synchronous, asynchronous
@@ -11,7 +12,7 @@ from cubewalkers.update_schemes import synchronous, asynchronous
 import string
 import random
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 if TYPE_CHECKING:
     from Experiment import Experiment
 
@@ -24,7 +25,10 @@ class Model():
     _automatic_model_names_taken = set()
 
     def __init__(self,
-                 rules: str,
+                 rules: str | None = None,
+                 lookup_tables: cp.ndarray | None = None,
+                 node_regulators: Iterable[Iterable[int]] | None = None,
+                 lookup_table_varnames: Iterable[str] | None = None,
                  initial_biases: str = "",
                  model_name: str | None = None,
                  experiment: Experiment | None = None,
@@ -36,9 +40,22 @@ class Model():
 
         Parameters
         ----------
-        rules : str
+        rules : str, optional
             Rules to input. If skip_clean is True (not default), then these are assumed to 
-            have been cleaned.
+            have been cleaned. If not provided, then lookup_tables and node_regulatorys must
+            both be provided instead.
+        lookup_tables : cp.ndarray, optional
+            A merged lookup table that contains the output column of each rule's
+            lookup table (padded by False values). If not provided, rules must be provided
+            instead.
+        node_regulators : Iterable[Iterable[int]]
+            Iterable i should contain the indicies of the nodes that regulate node i, 
+            optionally padded by negative values. If not provided, rules must be provided
+            instead.
+        lookup_table_varnames: Iterable[str], optional
+            Iterable of variable names to associate with lookup table entries.  
+            If None (default) dummy variable names of the form 'x0', 'x1', etc., will be 
+            constructed.
         initial_biases : str
             Each line should be of the form
             NodeName,bias
@@ -49,7 +66,8 @@ class Model():
             A name for the kernel
         experiment : Experiment | None, optional
             A string specifying experimental conditions, by default None, in which case no 
-            experimental conditions are incorporated into the rules.
+            experimental conditions are incorporated into the rules. Currently not implemented
+            for lookup-table-based Boolean networks.
         comment_char : str, optional
             In rules, empty lines and lines beginning with this character are ignored, by 
             default '#'.
@@ -68,10 +86,37 @@ class Model():
         else:
             self.name = model_name
 
-        self.rules = parser.clean_rules(rules, comment_char=comment_char)
-        self.kernel, self.varnames, self.code = parser.bnet2rawkernel(
-            self.rules, self.name, experiment=experiment, skip_clean=True)
+        self.raw_rules = rules  # uncleaned, comments retained, etc.
+        self.rules = rules
+        self.node_regulators = node_regulators
+        self.lookup_tables = lookup_tables
+        if rules is not None:
+            self.mode = 'algebraic'
+            if (lookup_tables is not None
+                or node_regulators is not None
+                    or lookup_table_varnames is not None):
+                warnings.warn(
+                    'Lookup table data and rule data were both provided. '
+                    'Lookup table data will be ignored in favor of rules.'
+                )
+
+            self.rules = parser.clean_rules(rules, comment_char=comment_char)
+            self.kernel, self.varnames, self.code = parser.bnet2rawkernel(
+                self.rules,
+                self.name,
+                experiment=experiment,
+                skip_clean=True)
+        else:
+            self.mode = 'tabular'
+            self.kernel, self.code = parser.regulators2lutkernel(
+                self.node_regulators, self.name)
+            if lookup_table_varnames is None:
+                self.varnames = [f'x{i}' for i in range(len(lookup_tables))]
+            else:
+                self.varnames = lookup_table_varnames
+
         self.vardict = {k: i for i, k in enumerate(self.varnames)}
+
         self.n_time_steps = n_time_steps
         self.n_walkers = n_walkers
         self.n_variables = len(self.varnames)
@@ -116,10 +161,12 @@ class Model():
 
         self.trajectories = simulation.simulate_ensemble(
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
+            lookup_tables=self.lookup_tables,
             initial_states=self.initial_states,
             averages_only=averages_only,
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
+        
 
     def trajectory_variance(self,
                             initial_state: cp.ndarray[cp.bool_],
@@ -164,6 +211,7 @@ class Model():
         avgs = simulation.simulate_ensemble(
             self.kernel, self.n_variables,
             n_time_steps, n_walkers,
+            lookup_tables=self.lookup_tables,
             initial_states=walkers_initial_state,
             averages_only=True,
             maskfunction=maskfunction,
@@ -219,12 +267,13 @@ class Model():
             source = self.vardict[source_var]
         else:
             source = [self.vardict[sv] for sv in source_var]
-        
+
         return simulation.dynamical_impact(
             self.kernel,
             source,
             self.n_variables,
             n_time_steps,
             n_walkers,
+            lookup_tables=self.lookup_tables,
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
