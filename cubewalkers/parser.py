@@ -171,12 +171,12 @@ def bnet2rawkernel(rules: str,
 
     return cp.RawKernel(cpp_body, kernel_name), varnames, cpp_body
 
-def network_rules_from_cana(N: BooleanNetwork) -> str:
+def network_rules_from_cana(BN: BooleanNetwork) -> str:
     """Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
 
-    Parametershttps://github.com/rionbr/CANA
+    Parameters: https://github.com/rionbr/CANA
     ----------
-    N : BooleanNetwork
+    BN : BooleanNetwork
         CANA Boolean network
 
     Returns
@@ -187,21 +187,21 @@ def network_rules_from_cana(N: BooleanNetwork) -> str:
     """
     
     alg_rule = ""
-    int2name = {v: name_adjustment(k) for k, v in N.name2int.items()}
-    for node in N.nodes:
+    int2name = {v: name_adjustment(k) for k, v in BN.name2int.items()}
+    for node in BN.nodes:
         alg_rule += node_rule_from_cana(node=node, int2name=int2name)
         alg_rule += "\n"
     
     return alg_rule[:-1]
 
-def node_rule_from_cana(node: BooleanNode, int2name: dict = None) -> str:
+def node_rule_from_cana(node: BooleanNode, int2name: dict[int, str] | None = None) -> str:
     """Transforms the prime implicants LUT of a Boolean Node from CANA to algebraic format.
 
     Parameters
     ----------
     node : BooleanNode
         CANA Boolean node
-    int2name : dict, optional
+    int2name : dict[int, str], optional
         Dictionary with the node ids as keys and node name as values, by default None
 
     Returns
