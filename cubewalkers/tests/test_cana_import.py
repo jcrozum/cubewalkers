@@ -1,5 +1,5 @@
 # Cubewalkers import
-from cubewalkers import parser as cwp 
+from cubewalkers import conversions
 
 ## Feed-Forwward motif with NOT+AND
 logic = {0: {'name': '3A', 'in':[], 'out':[0]},
@@ -14,6 +14,6 @@ def test_cana_import():
     import cana.boolean_network as cana_bn
     
     BN = cana_bn.BooleanNetwork.from_dict(logic)
-    cana_rules = cwp.network_rules_from_cana(BN)
+    cana_rules = conversions.network_rules_from_cana(BN)
     
     assert(cana_rules == cw_rules)
