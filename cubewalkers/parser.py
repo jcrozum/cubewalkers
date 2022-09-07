@@ -3,7 +3,7 @@ import cupy as cp
 from io import StringIO
 import re
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 if TYPE_CHECKING:
     from Experiment import Experiment
     from cana.boolean_network import BooleanNetwork, BooleanNode
@@ -166,6 +166,67 @@ def bnet2rawkernel(rules: str,
 
     return cp.RawKernel(cpp_body, kernel_name), varnames, cpp_body
 
+def regulators2lutkernel(node_regulators: Iterable[Iterable[int]],
+                         kernel_name: str) -> cp.RawKernel:
+    """Constructs a CuPy RawKernel that simulates a network using lookup tables.
+
+    Parameters
+    ----------
+    node_regulators : Iterable[Iterable[int]]
+        Iterable i should contain the indicies of the nodes that regulate node i, 
+        optionally padded by negative values.
+    kernel_name : str
+        Name of the kernel to be generated.
+
+    Returns
+    -------
+    cp.RawKernel
+        A CuPy RawKernel that accepts arguments in the following fashion:
+        kernel(blocks_per_grid, threads_per_block, (
+            input_array_to_update, 
+            update_scheme_mask, 
+            output_array_after_update, 
+            lookup_table,
+            current_time_step, 
+            number_of_nodes, 
+            number_of_walkers))
+        and modifies the output_array_after_update in-place using the provided lookup 
+        table to compute state transitions.
+    """
+    cpp_body = (
+        f'extern "C" __global__\n'
+        f'void {kernel_name}(const bool* A__reserved_input,\n'
+        f'        const float* A__reserved_mask,\n'
+        f'        bool* A__reserved_output,\n'
+        f'        const bool* A__reserved_LUT,\n'
+        f'        int t__reserved, int N__reserved, int W__reserved, int L__reserved) {{\n'
+        f'    int w__reserved = blockDim.x * blockIdx.x + threadIdx.x;\n'
+        f'    int n__reserved = blockDim.y * blockIdx.y + threadIdx.y;\n'
+        f'    int a__reserved = w__reserved + n__reserved*W__reserved;\n'
+        f'    if(n__reserved < N__reserved && w__reserved < W__reserved){{\n'
+        f'        if(A__reserved_mask[a__reserved]>0){{\n'
+    )
+
+    for ln, input in enumerate(node_regulators):
+        lookup_index = '0'
+        for ind in input:
+            if ind < 0:
+                break
+            lookup_index = (
+                f'({lookup_index}<<1)'
+                f'+A__reserved_input[{ind}*W__reserved+w__reserved]'
+            )
+
+        cpp_body += (
+            f'if (n__reserved=={ln}){{'
+            f'A__reserved_output[a__reserved]='
+            f'A__reserved_LUT[({lookup_index})+L__reserved*n__reserved];}}\n'
+        )
+    cpp_body += '\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}'
+
+    # print(cpp_body)
+    return cp.RawKernel(cpp_body, kernel_name), cpp_body
+    
 def network_rules_from_cana(BN: BooleanNetwork) -> str:
     """Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 import cupy as cp
-from cubewalkers.update_schemes import synchronous, asynchronous
+from cubewalkers.update_schemes import synchronous
 
 import cubewalkers as cw
 
 def simulate_ensemble(kernel: cp.RawKernel,
                       N: int, T: int, W: int,
+                      lookup_tables: cp.ndarray | None = None,
                       averages_only: bool = False,
                       initial_states: cp.ndarray | None = None,
                       maskfunction: callable = synchronous,
@@ -22,6 +23,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
         Number of timesteps to simulate.
     W : int
         Number of ensemble walkers to simulate.
+    lookup_tables : cp.ndarray, optional
+        A merged lookup table that contains the output column of each rule's
+        lookup table (padded by False values). If provided, it is passed to the kernel,
+        in which case the kernel must be a lookup-table-based kernel. If None (default),
+        then the kernel must have the update rules internally encoded.
     initial_states : cp.ndarray | None, optional
         N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
         (default), initial states are randomly initialized.
@@ -46,6 +52,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
 
+    # If we're using lookup tables for the rule evaluation, record the size of the largest
+    # table (note that the LUTs must be padded to equal lengths)
+    if lookup_tables is not None:
+        L = len(lookup_tables[0])
+    
     # initialize output array (will copy to input on first timestep)
     if initial_states is None:
         out = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
@@ -68,8 +79,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
         mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block)
 
         # run the update on the GPU
-        kernel(blocks_per_grid, threads_per_block, (arr, mask, out, t, N, W))
-
+        if lookup_tables is None:
+            kernel(blocks_per_grid, threads_per_block, (arr, mask, out, t, N, W))
+        else:
+            kernel(blocks_per_grid, threads_per_block,
+               (arr, mask, out, lookup_tables, t, N, W, L))
         # store results
         if averages_only:
             trajectories[t+1] = cp.mean(out, axis=1)
@@ -81,6 +95,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
 def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
                      N: int, T: int, W: int,
+                     lookup_tables: cp.ndarray | None = None,
                      maskfunction: callable = synchronous,
                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
     """Computes the dynamical impact of the source node index on all others (including
@@ -98,6 +113,11 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         Number of timesteps to simulate.
     W : int
         Number of ensemble walkers to simulate.
+    lookup_tables : cp.ndarray, optional
+        A merged lookup table that contains the output column of each rule's
+        lookup table (padded by False values). If provided, it is passed to the kernel,
+        in which case the kernel must be a lookup-table-based kernel. If None (default),
+        then the kernel must have the update rules internally encoded.
     maskfunction : callable, optional
         Function that returns a mask for selecting which node values to update. 
         By default, uses the synchronous update scheme. See update_schemes for examples.
@@ -115,6 +135,11 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
+    
+    # If we're using lookup tables for the rule evaluation, record the size of the largest
+    # table (note that the LUTs must be padded to equal lengths)
+    if lookup_tables is not None:
+        L = len(lookup_tables[0])
     
     # initial conditions
     outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
@@ -136,8 +161,14 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         mask = maskfunction(t, N, W, arrU)
         
         # run the update on the GPU for the two states
-        kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, t, N, W))
-        kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, t, N, W))
+        if lookup_tables is None:
+            kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, t, N, W))
+            kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, t, N, W))
+        else:
+            kernel(blocks_per_grid, threads_per_block,
+               (arrU, mask, outU, lookup_tables, t, N, W, L))
+            kernel(blocks_per_grid, threads_per_block,
+               (arrP, mask, outP, lookup_tables, t, N, W, L))
         
         impact[t+1] = cp.mean(outU ^ outP, axis = 1)
     
