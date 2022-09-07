@@ -6,6 +6,7 @@ import re
 from typing import TYPE_CHECKING, Iterable
 if TYPE_CHECKING:
     from Experiment import Experiment
+    from cana.boolean_network import BooleanNetwork, BooleanNode
 
 
 def clean_rules(rules: str, comment_char: str = '#') -> str:
@@ -165,7 +166,6 @@ def bnet2rawkernel(rules: str,
 
     return cp.RawKernel(cpp_body, kernel_name), varnames, cpp_body
 
-
 def regulators2lutkernel(node_regulators: Iterable[Iterable[int]],
                          kernel_name: str) -> cp.RawKernel:
     """Constructs a CuPy RawKernel that simulates a network using lookup tables.
@@ -226,3 +226,98 @@ def regulators2lutkernel(node_regulators: Iterable[Iterable[int]],
 
     # print(cpp_body)
     return cp.RawKernel(cpp_body, kernel_name), cpp_body
+    
+def network_rules_from_cana(BN: BooleanNetwork) -> str:
+    """Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
+
+    ----------
+    BN : BooleanNetwork
+        CANA Boolean network. See: https://github.com/rionbr/CANA
+
+    Returns
+    -------
+    str
+        Network rules in algebraic format.
+        Ex.: A* = A|B&C\nB* = C\nC* = A|B
+    """
+    
+    alg_rule = ""
+    int2name = {v: name_adjustment(k) for k, v in BN.name2int.items()}
+    for node in BN.nodes:
+        alg_rule += node_rule_from_cana(node=node, int2name=int2name)
+        alg_rule += "\n"
+    
+    return alg_rule[:-1]
+
+def node_rule_from_cana(node: BooleanNode, int2name: dict[int, str] | None = None) -> str:
+    """Transforms the prime implicants LUT of a Boolean Node from CANA to algebraic format.
+
+    Parameters
+    ----------
+    node : BooleanNode
+        CANA Boolean node. See: https://github.com/rionbr/CANA
+    int2name : dict[int, str], optional
+        Dictionary with the node ids as keys and node name as values, by default None
+
+    Returns
+    -------
+    str
+        Node rule in algebraic format.
+        Ex.: A* = A|B&C
+    """
+    if int2name == None:
+        int2name = {i: "x{}".format(i) for i in node.inputs}
+        
+    if node.constant:
+        return "{name}* = {state}".format(name=int2name[node.id], state=node.state)
+    
+    node._check_compute_canalization_variables(prime_implicants=True)
+    
+    if node.bias() < 0.5:
+        alg_rule = "{name}* = ".format(name=int2name[node.id])
+        prime_rules = node._prime_implicants['1']
+    else:
+        alg_rule = "{name}* = !(".format(name=int2name[node.id])
+        prime_rules = node._prime_implicants['0']
+    
+    for rule in prime_rules:
+        for k, out in enumerate(rule):
+            if out == '1':
+                alg_rule += "{name}&".format(name=int2name[node.inputs[k]])
+            elif out == '0':
+                alg_rule += "!{name}&".format(name=int2name[node.inputs[k]])
+        alg_rule = alg_rule[:-1]+"|"
+    
+    if node.bias() < 0.5:
+        alg_rule = alg_rule[:-1]
+    else:
+        alg_rule = alg_rule[:-1]+")"
+    
+    return alg_rule
+
+def name_adjustment(name: str) -> str:
+    """Adjust the node name to fit proper formatting.
+
+    Parameters
+    ----------
+    name : str
+        Original name of the node.
+
+    Returns
+    -------
+    str
+        Adjusted name of the node.
+    """
+    
+    not_allowed = ["-", ")", "(", "/"]
+    
+    for expression in not_allowed:
+        name = name.replace(expression, "_")
+        
+    name = name.replace("\\", "")
+    name = name.replace("+", "_plus_")
+    
+    if name[0].isdigit():
+        name = 'number_' + name
+    
+    return name

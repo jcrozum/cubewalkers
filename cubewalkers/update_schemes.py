@@ -1,8 +1,19 @@
 from __future__ import annotations
 import cupy as cp
 
+asynchronous_kernel = cp.RawKernel(r'''
+extern "C" __global__
+void asynchronous(const int* x1, int* z, int N, int W) {
+    int n_reserved = blockDim.x * blockIdx.x + threadIdx.x;
+    int w_reserved = blockDim.y * blockIdx.y + threadIdx.y;
+    if(n_reserved < N && w_reserved < W){
+    if(x1[w_reserved]==n_reserved){
+    int a_reserved = n_reserved * W + w_reserved;
+    z[a_reserved] = 1;}}
+}
+''', 'asynchronous')
 
-def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
 
     Parameters
@@ -21,16 +32,18 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
-    z = cp.random.random((n,w), dtype=cp.float32)
-    mz = cp.equal(z,cp.max(z, axis=0))
+    try:
+        tpb = kwargs["threads_per_block"]
+    except:
+        tpb = (32, 32)
+    x1 = cp.floor(cp.random.random(size=(w,))*n)
+    x1 = x1.astype(cp.int_)
+    z = cp.zeros((n, w), dtype=cp.int_)
+    asynchronous_kernel((n//tpb[0]+1,w//tpb[1]+1), tpb, (x1, z, n, w))
 
-    while cp.sum(mz) != w:
-        z = cp.random.random((n,w), dtype=cp.float32)
-        mz = cp.equal(z,cp.max(z, axis=0))
+    return z.astype(cp.float32)
 
-    return mz.astype(cp.float32)
-
-def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a single node to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
@@ -50,17 +63,20 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    z = cp.random.random((n,w), dtype=cp.float32)
-    mz = cp.equal(z,cp.max(z, axis=0))
-
-    while cp.sum(mz) != w:
-        z = cp.random.random((n,w), dtype=cp.float32)
-        mz = cp.equal(z,cp.max(z, axis=0))
+    try:
+        tpb = kwargs["threads_per_block"]
+    except:
+        tpb = (32, 32)
+    x1 = cp.floor(cp.random.random(size=(w,))*n)
+    x1 = x1.astype(cp.int_)
+    z = cp.zeros((n, w), dtype=cp.int_)
+    asynchronous_kernel((n//tpb[0]+1,w//tpb[1]+1), tpb, (x1, z, n, w))
+    z = z.astype(cp.float32)
 
     x = 1 - cp.random.random(w, dtype=cp.float32)
-    return x * mz
+    return x * z
 
-def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
 
     Parameters
@@ -79,11 +95,15 @@ def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.around(z)
+    z = cp.ceil(prob-z)
     return z
 
-def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
@@ -103,12 +123,15 @@ def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.subtract(z, 0.5)
-    z = cp.absolute(z) + z
-    return z
+    mz = cp.ceil(prob-z)
+    return z * mz / prob
 
-def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. All nodes use the same value,
     but each walker uses an independently generated value.
@@ -129,12 +152,16 @@ def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
+    try:
+        prob = kwargs["update_prob"]
+    except:
+        prob = 0.5
     z = cp.random.random((n, w), dtype=cp.float32)
-    z = cp.around(z)
+    z = cp.ceil(prob-z)
     x = 1 - cp.random.random(w, dtype=cp.float32)
     return x * z
 
-def synchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def synchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that updates all nodes at each timestep.
 
     Parameters
@@ -156,7 +183,7 @@ def synchronous(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     return cp.ones((n, w), dtype=cp.float32)
 
 
-def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. Each value is indepently generated for each node.
 
@@ -179,7 +206,7 @@ def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
     return 1 - cp.random.random((n, w), dtype=cp.float32)
 
 
-def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray) -> cp.ndarray:
+def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     """Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. All nodes use the same value, but each walker uses an independently generated
     value.

@@ -2,6 +2,7 @@ from __future__ import annotations
 import cupy as cp
 from cubewalkers.update_schemes import synchronous
 
+import cubewalkers as cw
 
 def simulate_ensemble(kernel: cp.RawKernel,
                       N: int, T: int, W: int,
@@ -31,13 +32,13 @@ def simulate_ensemble(kernel: cp.RawKernel,
         N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
         (default), initial states are randomly initialized.
     averages_only : bool, optional
-        If True, stores only average node values at each timestep. 
+        If True, stores only average node values at each timestep.
         Otherwise, stores node values for each walker. By default False.
     maskfunction : callable, optional
-        Function that returns a mask for selecting which node values to update. 
+        Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array, 
+        How many threads should be in each block for each dimension of the N x W array,
         by default (32, 32). See CUDA documentation for details.
 
     Returns
@@ -75,7 +76,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
         arr = out.copy()  # get values from update
 
         # compute which variables to update
-        mask = maskfunction(t, N, W, arr)
+        mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block)
 
         # run the update on the GPU
         if lookup_tables is None:
@@ -172,3 +173,57 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         impact[t+1] = cp.mean(outU ^ outP, axis = 1)
     
     return impact
+
+
+def derrida_coefficient(kernel: cp.RawKernel,
+                     N: int, W: int,
+                     maskfunction: callable = synchronous,
+                     threads_per_block: tuple[int, int] = (16, 16)) -> float:
+    """Computes the derrida coefficient.
+
+    Parameters
+    ----------
+    kernel : cp.RawKernel
+        CuPy RawKernel that provides the update functions (see parser module).
+    N : int
+        Number of nodes in the network.
+    W : int
+        Number of ensemble walkers to simulate.
+    maskfunction : callable, optional
+        Function that returns a mask for selecting which node values to update. 
+        By default, uses the synchronous update scheme. See update_schemes for examples.
+        For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+        trajectory is used.
+    threads_per_block : tuple[int, int], optional
+        How many threads should be in each block for each dimension of the N x W array, 
+        by default (16, 16). See CUDA documentation for details.
+
+    Returns
+    -------
+    float
+        Derrida coefficient
+    """
+    # compute blocks per grid based on number of walkers & variables and threads_per_block
+    blocks_per_grid = (W // threads_per_block[1]+1,
+                       N // threads_per_block[0]+1)
+    
+    # initial conditions
+    #outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
+    outU = cp.around(cp.random.random((N,W))).astype(cp.bool_)
+    outP = outU.copy()
+    #perturbed_var = cp.random.choice(range(N), W)
+    perturbed_var = cp.random.randint(N, size=W)
+    for idx, var in enumerate(perturbed_var):
+        outP[var, idx] = ~outP[var, idx]
+    
+    # get values from update
+    arrU = outU.copy()  # get values from update
+    arrP = outP.copy()
+    
+    mask = maskfunction(1, N, W, arrU)
+    
+    # run the update on the GPU for the two states
+    kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
+    kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, 1, N, W))    
+    
+    return cp.mean(outU ^ outP)
