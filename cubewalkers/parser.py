@@ -193,7 +193,7 @@ def network_rules_from_cana(N: BooleanNetwork) -> str:
         alg_rule += node_rule_from_cana(node=node, int2name=int2name)
         alg_rule += "\n"
     
-    return alg_rule
+    return alg_rule[:-1]
 
 def node_rule_from_cana(node: BooleanNode, int2name: dict = None) -> str:
     """Transforms the prime implicants LUT of a Boolean Node from CANA to algebraic format.
@@ -211,20 +211,19 @@ def node_rule_from_cana(node: BooleanNode, int2name: dict = None) -> str:
         Node rule in algebraic format.
         Ex.: A* = A|B&C
     """
-    
+    if int2name == None:
+        int2name = {i: "x{}".format(i) for i in node.inputs}
+        
     if node.constant:
-        return "{name}* = {state}".format(name=node.name, state=node.state)
+        return "{name}* = {state}".format(name=int2name[node.id], state=node.state)
     
     node._check_compute_canalization_variables(prime_implicants=True)
     
-    if int2name == None:
-        int2name = {i: "x{}".format(i) for i in node.inputs}
-    
     if node.bias() < 0.5:
-        alg_rule = "{name}* = ".format(name=node.name)
+        alg_rule = "{name}* = ".format(name=int2name[node.id])
         prime_rules = node._prime_implicants['1']
     else:
-        alg_rule = "{name}* = !(".format(name=node.name)
+        alg_rule = "{name}* = !(".format(name=int2name[node.id])
         prime_rules = node._prime_implicants['0']
     
     for rule in prime_rules:
