@@ -1,5 +1,4 @@
 from __future__ import annotations
-from curses.ascii import isdigit
 import cupy as cp
 from io import StringIO
 import re
@@ -175,7 +174,7 @@ def bnet2rawkernel(rules: str,
 def network_rules_from_cana(N: BooleanNetwork) -> str:
     """Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
 
-    Parameters
+    Parametershttps://github.com/rionbr/CANA
     ----------
     N : BooleanNetwork
         CANA Boolean network
