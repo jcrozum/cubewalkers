@@ -15,9 +15,9 @@ class Experiment:
         ----------
         override_string : str
             Experimental conditions to incorporate. Each line should be of the form
-            
+
             NodeName,StartTime,EndTime,RuleToSubstitute
-            
+
             If NodeName ends in a '*', then update is not forced (i.e., the update
             rule becomes fixed to RuleToSubstitute). Otherwise, update is forced,
             and the node NodeName takes the value RuleToSubstitute at each time 
@@ -28,7 +28,7 @@ class Experiment:
         override_list = sorted(StringIO(override_string))
         self.overrides = {}
         self.force_update_time_strings = {}
-        
+
         for s in override_list:
             s = s.lstrip()
             if len(s.strip()) == 0 or s[0] == comment_char:
@@ -36,7 +36,7 @@ class Experiment:
 
             varname, ti, tf, rule_override = [x.strip() for x in s.split(',')]
             rule_override = parser.clean_rules(rule_override).strip()
-            
+
             force_update = True
             if varname[-1] == '*':
                 varname = varname[:-1]
@@ -47,14 +47,14 @@ class Experiment:
                 self.force_update_time_strings[varname] = ''
             else:
                 self.force_update_time_strings[varname] += ' || '
-                
+
             if tf == 'inf':
                 self.overrides[varname] = (
                     f'(t__reserved < {ti}) && '
                     f'{self.overrides[varname]}'
                     f'|| (t__reserved >= {ti}) && {rule_override}'
                 )
-                
+
                 if force_update:
                     self.force_update_time_strings[varname] += (
                         f'(t__reserved >= {ti})'

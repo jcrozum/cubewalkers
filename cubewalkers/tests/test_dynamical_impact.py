@@ -7,7 +7,8 @@ rules = """
         C* = B
         D* = D
         """
-        
+
+
 def test_standard_heuristic():
     mymodel = cw.Model(rules)
     mymodel.n_time_steps = 3
@@ -20,17 +21,19 @@ def test_standard_heuristic():
 
     assert(cp.all(dynamical_impact == expected_impact))
 
+
 def test_perturb_2():
     mymodel = cw.Model(rules)
     mymodel.n_time_steps = 3
     mymodel.n_walkers = 30  # doesn't matter too much what we pick for n_walkers
 
-    dynamical_impact = mymodel.dynamical_impact(['A','D'])
+    dynamical_impact = mymodel.dynamical_impact(['A', 'D'])
 
     expected_impact = cp.array(
         [[1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
 
     assert(cp.all(dynamical_impact == expected_impact))
+
 
 def test_trajectory_variance():
     mymodel = cw.Model(rules)

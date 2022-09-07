@@ -22,6 +22,7 @@ unforced_experiment_string = """
                              A*,1,inf,1
                              """
 
+
 def test_simulation_syncronous():
     test_experiment = cw.Experiment(experiment_string)
     test_model = cw.Model(test_rules,
@@ -40,48 +41,52 @@ def test_simulation_syncronous():
 
     assert all(tail == expected_tail)
 
+
 def test_lut_simulation_synchronous():
-    lut_test_rules="""
+    lut_test_rules = """
     A*=0
     B*=A or not B
     C*=C
     """
-    lut_test_regulators =[
+    lut_test_regulators = [
         [],
-        [0,1],
+        [0, 1],
         [2]
     ]
-    lut_test_lut=cp.array([
-        [0,0,0,0],
-        [1,0,1,1],
-        [0,1,0,0],
-    ],dtype=cp.bool_)
-    
-    lut_test_initial_states=cp.array([
-        [1,0],
-        [1,0],
-        [1,0]
+    lut_test_lut = cp.array([
+        [0, 0, 0, 0],
+        [1, 0, 1, 1],
+        [0, 1, 0, 0],
+    ], dtype=cp.bool_)
+
+    lut_test_initial_states = cp.array([
+        [1, 0],
+        [1, 0],
+        [1, 0]
     ])
     test_model_with_rules = cw.Model(lut_test_rules,
-                          comment_char='#',
-                          n_time_steps=100,
-                          n_walkers=2,
-                          model_name="lut_test_with_rules")
+                                     comment_char='#',
+                                     n_time_steps=100,
+                                     n_walkers=2,
+                                     model_name="lut_test_with_rules")
     test_model_with_lut = cw.Model(
         lookup_tables=lut_test_lut,
         node_regulators=lut_test_regulators,
         n_time_steps=100,
         n_walkers=2,
         model_name="lut_test_with_lut")
-    
-    test_model_with_rules.initial_states=lut_test_initial_states
-    test_model_with_lut.initial_states=lut_test_initial_states
-    
-    test_model_with_rules.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
-    test_model_with_lut.simulate_ensemble(maskfunction=cw.update_schemes.synchronous)
-    
-    assert(cp.sum(test_model_with_rules.trajectories!=test_model_with_lut.trajectories)==0)
- 
+
+    test_model_with_rules.initial_states = lut_test_initial_states
+    test_model_with_lut.initial_states = lut_test_initial_states
+
+    test_model_with_rules.simulate_ensemble(
+        maskfunction=cw.update_schemes.synchronous)
+    test_model_with_lut.simulate_ensemble(
+        maskfunction=cw.update_schemes.synchronous)
+
+    assert(cp.sum(test_model_with_rules.trajectories !=
+           test_model_with_lut.trajectories) == 0)
+
 
 def test_simulation_syncronous_constant():
     test_experiment = cw.Experiment(experiment_string)
@@ -100,6 +105,7 @@ def test_simulation_syncronous_constant():
 
     assert all(tail == expected_tail)
 
+
 def test_unforced_experiment():
     unforced_experiment = cw.Experiment(unforced_experiment_string)
     test_model = cw.Model(unforced_experiment_test_model,
@@ -109,10 +115,10 @@ def test_unforced_experiment():
                           n_walkers=100,
                           model_name="test_unforced_experiment")
 
-    def bespoke_updater(t,n,w,a,**kwargs):
+    def bespoke_updater(t, n, w, a, **kwargs):
         mask = cp.ones((n, w), dtype=cp.float32)
         if t >= 1:
-            mask[0,:] = cp.float32(0)
+            mask[0, :] = cp.float32(0)
         return mask
 
     test_model.simulate_ensemble(maskfunction=bespoke_updater)

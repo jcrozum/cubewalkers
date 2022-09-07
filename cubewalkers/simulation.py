@@ -207,11 +207,11 @@ def derrida_coefficient(kernel: cp.RawKernel,
     float
         Derrida coefficient
     """
-    
+
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
-    
+
     if lookup_tables is not None:
         L = len(lookup_tables[0])
 
@@ -226,7 +226,7 @@ def derrida_coefficient(kernel: cp.RawKernel,
     arrU = outU.copy()  # get values from update
     arrP = outP.copy()
 
-    mask = synchronous(None, N, W, None) # only defined for synchronous update
+    mask = synchronous(None, N, W, None)  # only defined for synchronous update
 
     # run the update on the GPU for the two states
     if lookup_tables is None:
@@ -234,8 +234,8 @@ def derrida_coefficient(kernel: cp.RawKernel,
         kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, 1, N, W))
     else:
         kernel(blocks_per_grid, threads_per_block,
-                   (arrU, mask, outU, lookup_tables, 1, N, W, L))
+               (arrU, mask, outU, lookup_tables, 1, N, W, L))
         kernel(blocks_per_grid, threads_per_block,
                (arrP, mask, outP, lookup_tables, 1, N, W, L))
-        
+
     return cp.mean(outU ^ outP)*N
