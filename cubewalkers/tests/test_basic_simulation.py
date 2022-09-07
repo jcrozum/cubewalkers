@@ -109,7 +109,7 @@ def test_unforced_experiment():
                           n_walkers=100,
                           model_name="test_unforced_experiment")
 
-    def bespoke_updater(t,n,w,a):
+    def bespoke_updater(t,n,w,a,**kwargs):
         mask = cp.ones((n, w), dtype=cp.float32)
         if t >= 1:
             mask[0,:] = cp.float32(0)
