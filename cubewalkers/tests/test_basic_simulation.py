@@ -22,6 +22,11 @@ unforced_experiment_string = """
                              A*,1,inf,1
                              """
 
+test_converge_to_zero = """
+                        # Converges to A=B=0 in at most timesteps in synchronous update
+                        A* = A & B
+                        B* = A & !B
+"""
 
 def test_simulation_syncronous():
     test_experiment = cw.Experiment(experiment_string)
@@ -41,6 +46,25 @@ def test_simulation_syncronous():
 
     assert all(tail == expected_tail)
 
+
+def test_twindow_synchronous():
+    T_window = 5
+    test_model = cw.Model(test_converge_to_zero,
+                          experiment=None,
+                          comment_char='#',
+                          n_time_steps=100,
+                          n_walkers=100,
+                          model_name="test_twindow_synchronous_model")
+    test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous, 
+                                 T_window=T_window,
+                                 averages_only=False)
+    
+    N = test_model.n_variables
+    W = test_model.n_walkers
+    
+    expected_output = cp.zeros((T_window,N,W),dtype=cp.bool_)
+    
+    assert cp.sum(test_model.trajectories != expected_output) == 0
 
 def test_lut_simulation_synchronous():
     lut_test_rules = """
