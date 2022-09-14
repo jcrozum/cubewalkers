@@ -11,7 +11,8 @@ def simulate_ensemble(kernel: cp.RawKernel,
                       averages_only: bool = False,
                       initial_states: cp.ndarray | None = None,
                       maskfunction: callable = synchronous,
-                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                      threads_per_block: tuple[int, int] = (32, 32),
+                      set_update_prob: float = 0.5) -> cp.ndarray:
     """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
 
     Parameters
@@ -77,7 +78,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
         arr = out.copy()  # get values from update
 
         # compute which variables to update
-        mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block)
+        mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block, set_update_prob=set_update_prob)
 
         # run the update on the GPU
         if lookup_tables is None:
