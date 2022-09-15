@@ -135,6 +135,7 @@ class Model():
             comment_char=self.comment_char)
 
     def simulate_ensemble(self,
+                          T_window: int | None = None,
                           averages_only: bool = False,
                           maskfunction: callable = synchronous,
                           threads_per_block: tuple[int, int] = (32, 32),
@@ -144,6 +145,9 @@ class Model():
 
         Parameters
         ----------
+        T_window : int, optional
+            Number of time points to keep (from t=T-T_window+1 to t=T). If None (default),
+            keep all time points.
         averages_only : bool, optional
             If True, stores only average node values at each timestep.
             Otherwise, stores node values for each walker. By default False.
@@ -162,6 +166,7 @@ class Model():
 
         self.trajectories = simulation.simulate_ensemble(
             self.kernel, self.n_variables, self.n_time_steps, self.n_walkers,
+            T_window=T_window,
             lookup_tables=self.lookup_tables,
             initial_states=self.initial_states,
             averages_only=averages_only,

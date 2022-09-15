@@ -6,7 +6,7 @@ import cubewalkers as cw
 
 
 def simulate_ensemble(kernel: cp.RawKernel,
-                      N: int, T: int, W: int,
+                      N: int, T: int, W: int, T_window: int | None = None,
                       lookup_tables: cp.ndarray | None = None,
                       averages_only: bool = False,
                       initial_states: cp.ndarray | None = None,
@@ -25,6 +25,9 @@ def simulate_ensemble(kernel: cp.RawKernel,
         Number of timesteps to simulate.
     W : int
         Number of ensemble walkers to simulate.
+    T_window : int, optional
+        Number of time points to keep (from t=T-T_window+1 to t=T). If None (default),
+        keep all time points.
     lookup_tables : cp.ndarray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
@@ -65,12 +68,15 @@ def simulate_ensemble(kernel: cp.RawKernel,
     else:
         out = initial_states.copy()
 
+    if T_window is None:
+        T_window = T + 1
+
     # initialize return array
     if averages_only:
-        trajectories = -cp.ones((T+1, N))
+        trajectories = -cp.ones((T_window, N))
         trajectories[0] = cp.mean(out, axis=1)
     else:
-        trajectories = -cp.ones((T+1, N, W))
+        trajectories = -cp.ones((T_window, N, W))
         trajectories[0, :, :] = out.copy()
 
     # simulation begins here
@@ -88,10 +94,15 @@ def simulate_ensemble(kernel: cp.RawKernel,
             kernel(blocks_per_grid, threads_per_block,
                    (arr, mask, out, lookup_tables, t, N, W, L))
         # store results
+        t_ind = (t+1) % T_window
         if averages_only:
-            trajectories[t+1] = cp.mean(out, axis=1)
+            trajectories[t_ind] = cp.mean(out, axis=1)
         else:
-            trajectories[t+1, :, :] = out.copy()
+            trajectories[t_ind, :, :] = out.copy()
+
+    if t_ind > 0:
+        trajectories = cp.concatenate(
+            (trajectories[t_ind+1:], trajectories[0:t_ind+1]), axis=0)
 
     return trajectories
 
