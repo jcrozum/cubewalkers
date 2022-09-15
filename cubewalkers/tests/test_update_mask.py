@@ -1,7 +1,7 @@
 import cupy as cp
 import cubewalkers as cw
 
-n = 1000
+n = 10000
 w = 1000
 
 

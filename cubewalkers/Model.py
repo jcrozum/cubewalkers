@@ -137,20 +137,21 @@ class Model():
     def simulate_ensemble(self,
                           averages_only: bool = False,
                           maskfunction: callable = synchronous,
-                          threads_per_block: tuple[int, int] = (32, 32)) -> None:
+                          threads_per_block: tuple[int, int] = (32, 32),
+                          set_update_prob: float = 0.5) -> None:
         """Simulates a random ensemble of walkers on the internally stored Boolean network.
         Results are stored in the trajectories attribute.
 
         Parameters
         ----------
         averages_only : bool, optional
-            If True, stores only average node values at each timestep. 
+            If True, stores only average node values at each timestep.
             Otherwise, stores node values for each walker. By default False.
         maskfunction : callable, optional
-            Function that returns a mask for selecting which node values to update. 
+            Function that returns a mask for selecting which node values to update.
             By default, uses the synchronous update scheme. See update_schemes for examples.
         threads_per_block : tuple[int, int], optional
-            How many threads should be in each block for each dimension of the N x W array, 
+            How many threads should be in each block for each dimension of the N x W array,
             by default (32, 32). See CUDA documentation for details.
         """
 
@@ -165,7 +166,8 @@ class Model():
             initial_states=self.initial_states,
             averages_only=averages_only,
             maskfunction=maskfunction,
-            threads_per_block=threads_per_block)
+            threads_per_block=threads_per_block,
+            set_update_prob=set_update_prob)
 
     def trajectory_variance(self,
                             initial_state: cp.ndarray[cp.bool_],
