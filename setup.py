@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="cubewalkers",
-    version='1.0.0',
+    version='1.0.1',
     author="Jordan Rozum",
     author_email="jrozum@binghamton.edu",
     description="Python package for simulating Boolean networks on the GPU",
