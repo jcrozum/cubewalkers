@@ -238,7 +238,7 @@ def derrida_coefficient(kernel: cp.RawKernel,
 
     mask = synchronous(None, N, W, None)  # only defined for synchronous update
     kernel.compile()
-    return 1
+
     # run the update on the GPU for the two states
     if lookup_tables is None:
         kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
