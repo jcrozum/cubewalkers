@@ -1,6 +1,6 @@
 from __future__ import annotations
 import cupy as cp
-from cubewalkers.update_schemes import synchronous
+from cubewalkers.update_schemes import synchronous, asynchronous
 
 import cubewalkers as cw
 
@@ -225,21 +225,20 @@ def derrida_coefficient(kernel: cp.RawKernel,
                        N // threads_per_block[0]+1)
 
     if lookup_tables is not None:
-        L = len(lookup_tables[0])
+        L = lookup_tables.shape[1]
 
     # initial conditions
-    outU = cp.around(cp.random.random((N, W))).astype(cp.bool_)
-    outP = outU.copy()
-    perturbed_var = cp.random.randint(N, size=W)
-    for idx, var in enumerate(perturbed_var):
-        outP[var, idx] = ~outP[var, idx]
+    outU = cp.random.random((N, W), dtype=cp.float32)
+    outU = cp.ceil(0.5-outU).astype(cp.bool_)
+    outP = outU ^ asynchronous(None,N,W,None).astype(cp.bool_)
 
     # get values from update
     arrU = outU.copy()  # get values from update
     arrP = outP.copy()
 
     mask = synchronous(None, N, W, None)  # only defined for synchronous update
-
+    kernel.compile()
+    return 1
     # run the update on the GPU for the two states
     if lookup_tables is None:
         kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
@@ -249,5 +248,5 @@ def derrida_coefficient(kernel: cp.RawKernel,
                (arrU, mask, outU, lookup_tables, 1, N, W, L))
         kernel(blocks_per_grid, threads_per_block,
                (arrP, mask, outP, lookup_tables, 1, N, W, L))
-
+    
     return cp.mean(outU ^ outP)*N
