@@ -65,9 +65,9 @@ class Model():
         model_name : str
             A name for the kernel
         experiment : Experiment | None, optional
-            A string specifying experimental conditions, by default None, in which case no 
-            experimental conditions are incorporated into the rules. Currently not implemented
-            for lookup-table-based Boolean networks.
+            An Experiment object specifying experimental conditions, by default None, in which 
+            case no experimental conditions are incorporated into the rules. Currently not 
+            implemented for lookup-table-based Boolean networks.
         comment_char : str, optional
             In rules, empty lines and lines beginning with this character are ignored, by 
             default '#'.

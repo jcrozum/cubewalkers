@@ -22,6 +22,7 @@ class Experiment:
             rule becomes fixed to RuleToSubstitute). Otherwise, update is forced,
             and the node NodeName takes the value RuleToSubstitute at each time 
             step. Note that this does not make any difference in synchronous update.
+            The control can be made permanent by specifying an EndTime of inf.
         comment_char : str, optional
             Empty lines and lines beginning with this character are ignored, by default '#'.
         """

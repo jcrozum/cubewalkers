@@ -100,8 +100,8 @@ def bnet2rawkernel(rules: str,
     kernel_name : str
         A name for the kernel
     experiment : Experiment | None, optional
-        A string specifying experimental conditions, by default None, in which case no 
-        experimental conditions are incorporated into the rules.
+        An Experiment object specifying experimental conditions, by default None, in which 
+        case no experimental conditions are incorporated into the rules.
     comment_char : str, optional
         In rules, empty lines and lines beginning with this character are ignored, by default
         '#'.
