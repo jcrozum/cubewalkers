@@ -76,7 +76,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
         trajectories = -cp.ones((T_window, N))
         trajectories[0] = cp.mean(out, axis=1)
     else:
-        trajectories = -cp.ones((T_window, N, W))
+        trajectories = cp.ones((T_window, N, W), dtype=cp.bool_)
         trajectories[0, :, :] = out.copy()
 
     # simulation begins here
@@ -133,12 +133,12 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
     maskfunction : callable, optional
-        Function that returns a mask for selecting which node values to update. 
+        Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
         For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
         trajectory is used.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array, 
+        How many threads should be in each block for each dimension of the N x W array,
         by default (32, 32). See CUDA documentation for details.
 
     Returns
@@ -211,7 +211,7 @@ def derrida_coefficient(kernel: cp.RawKernel,
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array, 
+        How many threads should be in each block for each dimension of the N x W array,
         by default (32, 32). See CUDA documentation for details.
 
     Returns
@@ -247,5 +247,5 @@ def derrida_coefficient(kernel: cp.RawKernel,
                (arrU, mask, outU, lookup_tables, 1, N, W, L))
         kernel(blocks_per_grid, threads_per_block,
                (arrP, mask, outP, lookup_tables, 1, N, W, L))
-    
+
     return cp.mean(outU ^ outP)*N
