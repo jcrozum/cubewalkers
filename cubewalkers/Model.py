@@ -318,10 +318,7 @@ class Model():
         Returns
         -------
         cp.ndarray
-            (n_time_steps+1) x n_variables array of dynamical impacts of the source at each 
-            time. Refer to vardict member variable to see ordering of variables. Note that 
-            the initial time impact is always maximal for the source node and minimal for all 
-            others.
+            The estimated value of the coherence response to the source node perturbation.
         """
         if n_time_steps is None:
             n_time_steps = self.n_time_steps

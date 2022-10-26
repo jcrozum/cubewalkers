@@ -149,7 +149,7 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
     Returns
     -------
     cp.ndarray
-        (T+1) x N array of dynamical impacts of the source at each time.
+        The estimated value of the coherence response to the source node perturbation.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
