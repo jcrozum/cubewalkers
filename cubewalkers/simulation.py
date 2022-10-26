@@ -68,7 +68,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
     else:
         out = initial_states.copy()
 
-    if T_window is None or T_window > T:
+    if T_window is None or T_window > T or T_window < 1:
         T_window = T + 1
 
     # initialize return array
@@ -154,6 +154,9 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
                        N // threads_per_block[0]+1)
+
+    if T_sample < 1 or T_sample > T:
+        T_sample = 1
 
     # If we're using lookup tables for the rule evaluation, record the size of the largest
     # table (note that the LUTs must be padded to equal lengths)
