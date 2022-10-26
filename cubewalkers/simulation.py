@@ -191,10 +191,10 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
             trajU[:, :] += outU.astype(cp.uint32)
             trajP[:, :] += outP.astype(cp.uint32)
 
-        coherence_array = ((trajU == T_sample) & (trajP == T_sample) 
+    coherence_array = ((trajU == T_sample) & (trajP == T_sample) 
                            | (trajU == 0) & (trajP == 0))
 
-        coherence = cp.mean(cp.mean(coherence_array, axis=0) == 1)
+    coherence = cp.mean(cp.mean(coherence_array, axis=0) == 1)
 
     return coherence
 
