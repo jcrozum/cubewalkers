@@ -68,12 +68,12 @@ def simulate_ensemble(kernel: cp.RawKernel,
     else:
         out = initial_states.copy()
 
-    if T_window is None:
+    if T_window is None or T_window > T:
         T_window = T + 1
 
     # initialize return array
     if averages_only:
-        trajectories = -cp.ones((T_window, N))
+        trajectories = cp.ones((T_window, N), dtype=cp.bool_)
         trajectories[0] = cp.mean(out, axis=1)
     else:
         trajectories = cp.ones((T_window, N, W), dtype=cp.bool_)
@@ -84,7 +84,9 @@ def simulate_ensemble(kernel: cp.RawKernel,
         arr = out.copy()  # get values from update
 
         # compute which variables to update
-        mask = maskfunction(t, N, W, arr, threads_per_block=threads_per_block, set_update_prob=set_update_prob)
+        mask = maskfunction(t, N, W, arr,
+                            threads_per_block=threads_per_block,
+                            set_update_prob=set_update_prob)
 
         # run the update on the GPU
         if lookup_tables is None:
@@ -94,17 +96,107 @@ def simulate_ensemble(kernel: cp.RawKernel,
             kernel(blocks_per_grid, threads_per_block,
                    (arr, mask, out, lookup_tables, t, N, W, L))
         # store results
-        t_ind = (t+1) % T_window
-        if averages_only:
-            trajectories[t_ind] = cp.mean(out, axis=1)
-        else:
-            trajectories[t_ind, :, :] = out.copy()
+        # t_ind = (t+1) % T_window
+        if t >= T-T_window:
+            if averages_only:
+                trajectories[t-(T-T_window)] = cp.mean(out, axis=1)
+            else:
+                trajectories[t-(T-T_window), :, :] = out.copy()
 
-    if t_ind > 0:
-        trajectories = cp.concatenate(
-            (trajectories[t_ind+1:], trajectories[0:t_ind+1]), axis=0)
+    # if t_ind > 0:
+    #     trajectories = cp.concatenate(
+    #         (trajectories[t_ind+1:], trajectories[0:t_ind+1]), axis=0)
 
     return trajectories
+
+
+def source_coherence(kernel: cp.RawKernel, source: int | list[int],
+                     N: int, T: int, W: int, T_sample: int = 1,
+                     lookup_tables: cp.ndarray | None = None,
+                     maskfunction: callable = synchronous,
+                     threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+    """Computes the coherence in response to perturbation of source node index, averaging
+    trajectories from t=T-T_sample+1 to T.
+
+    Parameters
+    ----------
+    kernel : cp.RawKernel
+        CuPy RawKernel that provides the update functions (see parser module).
+    source : int | list[int]
+        Index or indices of node(s) to perturb for dynamical impact calculation.
+    N : int
+        Number of nodes in the network.
+    T : int
+        Number of timesteps to simulate.
+    W : int
+        Number of ensemble walkers to simulate.
+    T_sample : int, optional
+        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+    lookup_tables : cp.ndarray, optional
+        A merged lookup table that contains the output column of each rule's
+        lookup table (padded by False values). If provided, it is passed to the kernel,
+        in which case the kernel must be a lookup-table-based kernel. If None (default),
+        then the kernel must have the update rules internally encoded.
+    maskfunction : callable, optional
+        Function that returns a mask for selecting which node values to update.
+        By default, uses the synchronous update scheme. See update_schemes for examples.
+        For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+        trajectory is used.
+    threads_per_block : tuple[int, int], optional
+        How many threads should be in each block for each dimension of the N x W array,
+        by default (32, 32). See CUDA documentation for details.
+
+    Returns
+    -------
+    cp.ndarray
+        (T+1) x N array of dynamical impacts of the source at each time.
+    """
+    # compute blocks per grid based on number of walkers & variables and threads_per_block
+    blocks_per_grid = (W // threads_per_block[1]+1,
+                       N // threads_per_block[0]+1)
+
+    # If we're using lookup tables for the rule evaluation, record the size of the largest
+    # table (note that the LUTs must be padded to equal lengths)
+    if lookup_tables is not None:
+        L = len(lookup_tables[0])
+
+    # initial conditions
+    outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
+    outP = outU.copy()
+    outP[source, :] = ~outP[source, :]
+
+    # store trajectories for coherence computation
+    trajU = cp.zeros((N, W), dtype=cp.uint32)
+    trajP = cp.zeros((N, W), dtype=cp.uint32)
+
+    # begin simulation
+    for t in range(T):
+        arrU = outU.copy()  # get values from update
+        arrP = outP.copy()
+
+        mask = maskfunction(t, N, W, arrU)
+
+        # run the update on the GPU for the two states
+        if lookup_tables is None:
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrU, mask, outU, t, N, W))
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrP, mask, outP, t, N, W))
+        else:
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrU, mask, outU, lookup_tables, t, N, W, L))
+            kernel(blocks_per_grid, threads_per_block,
+                   (arrP, mask, outP, lookup_tables, t, N, W, L))
+        if t >= T-T_sample:
+            trajU[:, :] += outU.astype(cp.uint32)
+            trajP[:, :] += outP.astype(cp.uint32)
+
+        coherence_array = ((trajU == T_sample) & (trajP == T_sample) 
+                           | (trajU == 0) & (trajP == 0))
+
+        coherence = cp.mean(cp.mean(coherence_array, axis=0) == 1)
+
+    return coherence
 
 
 def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
@@ -230,7 +322,7 @@ def derrida_coefficient(kernel: cp.RawKernel,
     # initial conditions
     outU = cp.random.random((N, W), dtype=cp.float32)
     outU = cp.ceil(0.5-outU).astype(cp.bool_)
-    outP = outU ^ asynchronous(None,N,W,None).astype(cp.bool_)
+    outP = outU ^ asynchronous(None, N, W, None).astype(cp.bool_)
 
     # get values from update
     arrU = outU.copy()  # get values from update

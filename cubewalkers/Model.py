@@ -284,6 +284,66 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
+    def source_coherence(self,
+                         source_var: str | list[str],
+                         n_time_steps: int | None = None,
+                         n_walkers: int | None = None,
+                         T_sample: int = 1,
+                         maskfunction: callable = synchronous,
+                         threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the coherence in response to perturbation of source node index, averaging
+        trajectories from t=T-T_sample+1 to T.
+
+        Parameters
+        ----------
+        source_var : str | list[str]
+            Name(s) of variable(s) to find dynamical impact of.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        T_sample : int, optional
+            Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            (n_time_steps+1) x n_variables array of dynamical impacts of the source at each 
+            time. Refer to vardict member variable to see ordering of variables. Note that 
+            the initial time impact is always maximal for the source node and minimal for all 
+            others.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        if isinstance(source_var, str):
+            source = self.vardict[source_var]
+        else:
+            source = [self.vardict[sv] for sv in source_var]
+
+        return simulation.source_coherence(
+            self.kernel,
+            source,
+            self.n_variables,
+            n_time_steps,
+            n_walkers,
+            T_sample=T_sample,
+            lookup_tables=self.lookup_tables,
+            maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
     def derrida_coefficient(self,
                             n_walkers: int | None = None,
                             threads_per_block: tuple[int, int] = (32, 32)) -> float:
