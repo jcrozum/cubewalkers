@@ -284,14 +284,14 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
-    def source_coherence(self,
+    def source_quasicoherence(self,
                          source_var: str | list[str],
                          n_time_steps: int | None = None,
                          n_walkers: int | None = None,
                          T_sample: int = 1,
                          maskfunction: callable = synchronous,
                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
-        """Computes the coherence in response to perturbation of source node index, averaging
+        """Computes the quasicoherence in response to perturbation of source node index, averaging
         trajectories from t=T-T_sample+1 to T.
 
         Parameters
@@ -318,7 +318,7 @@ class Model():
         Returns
         -------
         cp.ndarray
-            The estimated value of the coherence response to the source node perturbation.
+            The estimated value of the quasicoherence response to the source node perturbation.
         """
         if n_time_steps is None:
             n_time_steps = self.n_time_steps
@@ -330,7 +330,7 @@ class Model():
         else:
             source = [self.vardict[sv] for sv in source_var]
 
-        return simulation.source_coherence(
+        return simulation.source_quasicoherence(
             self.kernel,
             source,
             self.n_variables,
@@ -341,13 +341,13 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
-    def coherence(self,
+    def quasicoherence(self,
                   n_time_steps: int | None = None,
                   n_walkers: int | None = None,
                   T_sample: int = 1,
                   maskfunction: callable = synchronous,
                   threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
-        """Computes the coherence in response to perturbation of single nodes, averaging
+        """Computes the quasicoherence in response to perturbation of single nodes, averaging
         trajectories from t=T-T_sample+1 to T.
 
         Parameters
@@ -372,7 +372,7 @@ class Model():
         Returns
         -------
         cp.ndarray
-            The estimated value of the coherence response to single node perturbations.
+            The estimated value of the quasicoherence response to single node perturbations.
         """
         if n_time_steps is None:
             n_time_steps = self.n_time_steps
@@ -381,7 +381,7 @@ class Model():
 
         c = 0
         for source_ind in range(self.n_variables):
-            c += simulation.source_coherence(
+            c += simulation.source_quasicoherence(
                 self.kernel,
                 source_ind,
                 self.n_variables,

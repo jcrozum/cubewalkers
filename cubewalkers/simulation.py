@@ -110,12 +110,12 @@ def simulate_ensemble(kernel: cp.RawKernel,
     return trajectories
 
 
-def source_coherence(kernel: cp.RawKernel, source: int | list[int],
+def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
                      N: int, T: int, W: int, T_sample: int = 1,
                      lookup_tables: cp.ndarray | None = None,
                      maskfunction: callable = synchronous,
                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
-    """Computes the coherence in response to perturbation of source node index, averaging
+    """Computes the quasicoherence in response to perturbation of source node index, averaging
     trajectories from t=T-T_sample+1 to T.
 
     Parameters
@@ -149,7 +149,7 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
     Returns
     -------
     cp.ndarray
-        The estimated value of the coherence response to the source node perturbation.
+        The estimated value of the quasicoherence response to the source node perturbation.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
@@ -168,7 +168,7 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
     outP = outU.copy()
     outP[source, :] = ~outP[source, :]
 
-    # store trajectories for coherence computation
+    # store trajectories for quasicoherence computation
     trajU = cp.zeros((N, W), dtype=cp.uint32)
     trajP = cp.zeros((N, W), dtype=cp.uint32)
 
@@ -194,12 +194,12 @@ def source_coherence(kernel: cp.RawKernel, source: int | list[int],
             trajU[:, :] += outU.astype(cp.uint32)
             trajP[:, :] += outP.astype(cp.uint32)
 
-    coherence_array = ((trajU == T_sample) & (trajP == T_sample) 
+    quasicoherence_array = ((trajU == T_sample) & (trajP == T_sample) 
                            | (trajU == 0) & (trajP == 0))
 
-    coherence = cp.mean(cp.mean(coherence_array, axis=0) == 1)
+    quasicoherence = cp.mean(cp.mean(quasicoherence_array, axis=0) == 1)
 
-    return coherence
+    return quasicoherence
 
 
 def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],

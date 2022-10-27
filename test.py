@@ -18,10 +18,10 @@ if __name__ == '__main__':
     )
     print("Sync")
     for test in range(5):
-        print(mymodel.coherence(T_sample=100,maskfunction=synchronous))
+        print(mymodel.quasicoherence(T_sample=100,maskfunction=synchronous))
         c = 0
         for name in mymodel.varnames:
-            c += mymodel.source_coherence(name,
+            c += mymodel.source_quasicoherence(name,
                                           T_sample=100,
                                           maskfunction=synchronous)
 
@@ -29,10 +29,10 @@ if __name__ == '__main__':
         print(c)
     print("Async") 
     for test in range(5):
-        print(mymodel.coherence(T_sample=100,maskfunction=asynchronous))
+        print(mymodel.quasicoherence(T_sample=100,maskfunction=asynchronous))
         c = 0
         for name in mymodel.varnames:
-            c += mymodel.source_coherence(name,
+            c += mymodel.source_quasicoherence(name,
                                           T_sample=100,
                                           maskfunction=asynchronous)
 
