@@ -284,6 +284,116 @@ class Model():
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)
 
+    def source_quasicoherence(self,
+                         source_var: str | list[str],
+                         n_time_steps: int | None = None,
+                         n_walkers: int | None = None,
+                         T_sample: int = 1,
+                         maskfunction: callable = synchronous,
+                         threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the quasicoherence in response to perturbation of source node index, averaging
+        trajectories from t=T-T_sample+1 to T.
+
+        Parameters
+        ----------
+        source_var : str | list[str]
+            Name(s) of variable(s) to find dynamical impact of.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        T_sample : int, optional
+            Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            The estimated value of the quasicoherence response to the source node perturbation.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        if isinstance(source_var, str):
+            source = self.vardict[source_var]
+        else:
+            source = [self.vardict[sv] for sv in source_var]
+
+        return simulation.source_quasicoherence(
+            self.kernel,
+            source,
+            self.n_variables,
+            n_time_steps,
+            n_walkers,
+            T_sample=T_sample,
+            lookup_tables=self.lookup_tables,
+            maskfunction=maskfunction,
+            threads_per_block=threads_per_block)
+
+    def quasicoherence(self,
+                  n_time_steps: int | None = None,
+                  n_walkers: int | None = None,
+                  T_sample: int = 1,
+                  maskfunction: callable = synchronous,
+                  threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the quasicoherence in response to perturbation of single nodes, averaging
+        trajectories from t=T-T_sample+1 to T.
+
+        Parameters
+        ----------
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the impact. By default, use internally 
+            stored variable `n_walkers`, which itself defaults to 1.
+        T_sample : int, optional
+            Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            The estimated value of the quasicoherence response to single node perturbations.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        c = 0
+        for source_ind in range(self.n_variables):
+            c += simulation.source_quasicoherence(
+                self.kernel,
+                source_ind,
+                self.n_variables,
+                n_time_steps,
+                n_walkers,
+                T_sample=T_sample,
+                lookup_tables=self.lookup_tables,
+                maskfunction=maskfunction,
+                threads_per_block=threads_per_block)
+
+        return c/self.n_variables
+
     def derrida_coefficient(self,
                             n_walkers: int | None = None,
                             threads_per_block: tuple[int, int] = (32, 32)) -> float:
