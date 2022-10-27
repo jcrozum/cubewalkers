@@ -1,6 +1,8 @@
 import cupy as cp
 import cubewalkers as cw
 
+from cubewalkers.update_schemes import synchronous, asynchronous
+
 from cana.datasets.bio import THALIANA
 from cubewalkers.conversions import cana2cupyLUT
 cp.set_printoptions(edgeitems=5)
@@ -16,16 +18,23 @@ if __name__ == '__main__':
     )
     print("Sync")
     for test in range(5):
-        c = cp.array([mymodel.source_coherence(name,
-                                               T_sample=100,
-                                               maskfunction=cw.update_schemes.synchronous) 
-                      for name in mymodel.varnames])
-        print(cp.mean(c))
-    print("Async")
+        print(mymodel.coherence(T_sample=100,maskfunction=synchronous))
+        c = 0
+        for name in mymodel.varnames:
+            c += mymodel.source_coherence(name,
+                                          T_sample=100,
+                                          maskfunction=synchronous)
+
+        c /= mymodel.n_variables
+        print(c)
+    print("Async") 
     for test in range(5):
-        c = cp.array([mymodel.source_coherence(name,
-                                               T_sample=100,
-                                               maskfunction=cw.update_schemes.asynchronous) 
-                      for name in mymodel.varnames])
-        print(cp.mean(c))
-  
+        print(mymodel.coherence(T_sample=100,maskfunction=asynchronous))
+        c = 0
+        for name in mymodel.varnames:
+            c += mymodel.source_coherence(name,
+                                          T_sample=100,
+                                          maskfunction=asynchronous)
+
+        c /= mymodel.n_variables
+        print(c)
