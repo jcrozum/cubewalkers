@@ -73,7 +73,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
     # initialize return array
     if averages_only:
-        trajectories = cp.ones((T_window, N), dtype=cp.bool_)
+        trajectories = cp.ones((T_window, N), dtype=cp.float_)
         trajectories[0] = cp.mean(out, axis=1)
     else:
         trajectories = cp.ones((T_window, N, W), dtype=cp.bool_)
@@ -95,6 +95,8 @@ def simulate_ensemble(kernel: cp.RawKernel,
         else:
             kernel(blocks_per_grid, threads_per_block,
                    (arr, mask, out, lookup_tables, t, N, W, L))
+        
+        
         # store results
         # t_ind = (t+1) % T_window
         if t >= T-T_window:
