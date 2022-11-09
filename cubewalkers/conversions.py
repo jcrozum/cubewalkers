@@ -61,7 +61,7 @@ def node_rule_from_cana(node: cana.BooleanNode,
 
     node._check_compute_canalization_variables(prime_implicants=True)
 
-    if node.bias() < 0.5:
+    if node.bias() <= 0.5:
         alg_rule = "{name}* = ".format(name=int2name[node.id])
         prime_rules = node._prime_implicants['1']
     else:
