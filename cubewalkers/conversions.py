@@ -76,7 +76,7 @@ def node_rule_from_cana(node: cana.BooleanNode,
                 alg_rule += "!{name}&".format(name=int2name[node.inputs[k]])
         alg_rule = alg_rule[:-1]+"|"
 
-    if node.bias() < 0.5:
+    if node.bias() <= 0.5:
         alg_rule = alg_rule[:-1]
     else:
         alg_rule = alg_rule[:-1]+")"
