@@ -289,6 +289,7 @@ class Model():
                          n_time_steps: int | None = None,
                          n_walkers: int | None = None,
                          T_sample: int = 1,
+                         fuzzy_coherence: bool = False,
                          maskfunction: callable = synchronous,
                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the quasicoherence in response to perturbation of source node index, averaging
@@ -306,6 +307,10 @@ class Model():
             stored variable `n_walkers`, which itself defaults to 1.
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        fuzzy_coherence : bool, optional
+            If False (default), trajectroies are marked as either in agreement (1) or not in
+            agreement (0) depending on whether fixed nodes are in agreement. If True, the
+            average absolute difference between state vectors is used instead.
         maskfunction : callable, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
@@ -337,6 +342,7 @@ class Model():
             n_time_steps,
             n_walkers,
             T_sample=T_sample,
+            fuzzy_coherence=fuzzy_coherence,
             lookup_tables=self.lookup_tables,
             maskfunction=maskfunction,
             threads_per_block=threads_per_block)

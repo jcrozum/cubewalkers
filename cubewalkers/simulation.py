@@ -95,8 +95,7 @@ def simulate_ensemble(kernel: cp.RawKernel,
         else:
             kernel(blocks_per_grid, threads_per_block,
                    (arr, mask, out, lookup_tables, t, N, W, L))
-        
-        
+
         # store results
         # t_ind = (t+1) % T_window
         if t >= T-T_window:
@@ -113,10 +112,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
 
 def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
-                     N: int, T: int, W: int, T_sample: int = 1,
-                     lookup_tables: cp.ndarray | None = None,
-                     maskfunction: callable = synchronous,
-                     threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                          N: int, T: int, W: int, T_sample: int = 1,
+                          fuzzy_coherence: bool = False,
+                          lookup_tables: cp.ndarray | None = None,
+                          maskfunction: callable = synchronous,
+                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
     """Computes the quasicoherence in response to perturbation of source node index, averaging
     trajectories from t=T-T_sample+1 to T.
 
@@ -134,6 +134,10 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
         Number of ensemble walkers to simulate.
     T_sample : int, optional
         Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+    fuzzy_coherence : bool, optional
+        If False (default), trajectroies are marked as either in agreement (1) or not in
+        agreement (0) depending on whether fixed nodes are in agreement. If True, the
+        average absolute difference between state vectors is used instead.
     lookup_tables : cp.ndarray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
@@ -196,8 +200,13 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
             trajU[:, :] += outU.astype(cp.uint32)
             trajP[:, :] += outP.astype(cp.uint32)
 
-    quasicoherence_array = ((trajU == T_sample) & (trajP == T_sample) 
-                           | (trajU == 0) & (trajP == 0))
+    if fuzzy_coherence:
+        quasicoherence_array = cp.abs(trajU - trajP)/T_sample
+    else:
+        quasicoherence_array = ((trajU == T_sample) & (trajP == T_sample)
+                                | (trajU == 0) & (trajP == 0)
+                                | (trajU > 0) & (trajP > 0)
+                                & (trajU < T_sample) & (trajP < T_sample))
 
     quasicoherence = cp.mean(cp.mean(quasicoherence_array, axis=0) == 1)
 
