@@ -25,8 +25,11 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
         A reformatted version of the input rules.
     """
 
+    # if we're already using cpp logical operators, switch to single for now
+    s = re.sub("\|\|", "|", rules)
+    s = re.sub("\&\&", "&", s)
     # make sure we're in proper bnet format
-    s = re.sub("\s*\*\s*=\s*", ",\t", rules)  # replace "*=" with ",\t"
+    s = re.sub("\s*\*\s*=\s*", ",\t", s)  # replace "*=" with ",\t"
     s = re.sub("\s+not\s+", " !", s, flags=re.IGNORECASE)  # not -> !
     # not -> ! (with parens)
     s = re.sub("\(\s*not\s+", "(!", s, flags=re.IGNORECASE)

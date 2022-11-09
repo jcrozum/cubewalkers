@@ -24,7 +24,7 @@ unforced_experiment_string = """
 
 test_converge_to_zero = """
                         # Converges to A=B=0 in at most timesteps in synchronous update
-                        A* = A & B
+                        A* = A && B
                         B* = A & !B
 """
 
