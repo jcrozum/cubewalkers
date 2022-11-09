@@ -201,7 +201,7 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
             trajP[:, :] += outP.astype(cp.uint32)
 
     if fuzzy_coherence:
-        quasicoherence_array = cp.abs(trajU - trajP)/T_sample
+        quasicoherence_array = cp.ones((N,W))-(trajU - trajP)
     else:
         quasicoherence_array = ((trajU == T_sample) & (trajP == T_sample)
                                 | (trajU == 0) & (trajP == 0)
