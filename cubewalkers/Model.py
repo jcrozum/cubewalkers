@@ -298,12 +298,12 @@ class Model():
         Parameters
         ----------
         source_var : str | list[str]
-            Name(s) of variable(s) to find dynamical impact of.
+            Name(s) of variable(s) to find coherence with respect to.
         n_time_steps : int | None, optional
             Number of timesteps to simulate. By default, use internally stored variable
             `n_time_steps`, which itself defaults to 1.
         n_walkers : int | None, optional
-            How many walkers to use to estimate the impact. By default, use internally 
+            How many walkers to use to estimate the coherence. By default, use internally 
             stored variable `n_walkers`, which itself defaults to 1.
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
@@ -314,7 +314,7 @@ class Model():
         maskfunction : callable, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
-            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            For coherence, if the maskfunction is state-dependent, then the unperturbed
             trajectory is used.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array, 
@@ -363,7 +363,7 @@ class Model():
             Number of timesteps to simulate. By default, use internally stored variable
             `n_time_steps`, which itself defaults to 1.
         n_walkers : int | None, optional
-            How many walkers to use to estimate the impact. By default, use internally 
+            How many walkers to use to estimate the coherence. By default, use internally 
             stored variable `n_walkers`, which itself defaults to 1.
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
@@ -374,7 +374,7 @@ class Model():
         maskfunction : callable, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
-            For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
+            For coherence, if the maskfunction is state-dependent, then the unperturbed
             trajectory is used.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array, 
