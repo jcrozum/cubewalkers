@@ -51,7 +51,7 @@ class Experiment:
             
             edgetic = '-->' in varname
             if edgetic:
-                parent,varname = [x.strip().lstrip() for x in varname.split()]
+                parent,varname = [x.strip().lstrip() for x in varname.split('-->')]
             else:
                 parent = None
             
