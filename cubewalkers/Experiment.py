@@ -29,8 +29,8 @@ class Experiment:
             The control can be made permanent by specifying an EndTime of inf.
             If NodeName is preceded by 'ParentName-->', then RuleToSubstitute replaces
             all occurences of ParentName in the update rule for NodeName, and the
-            update is never forced. If conflicting controls are specified, ealier
-            rows take precedence.
+            update is never forced. Specifying conflicting controls is not supported
+            and may lead to undefined behavior.
         comment_char : str, optional
             Empty lines and lines beginning with this character are ignored, by default '#'.
         """
@@ -62,10 +62,10 @@ class Experiment:
 
             if edgetic:
                 edge_sub_string = (
-                    f'(t__reserved < {ti} || t__reserved > {tf}) && '
-                    f'{parent}'
+                    f'( (t__reserved < {ti} || t__reserved > {tf}) && '
+                    f'({parent})'
                     f'|| (t__reserved >= {ti} && t__reserved <= {tf}) && '
-                    f'({rule_override}) '
+                    f'({rule_override}) )'
                 )
                 if varname not in self.edge_subs.keys():
                     self.edge_subs[varname] = [(parent,edge_sub_string)]
