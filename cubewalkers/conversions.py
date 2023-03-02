@@ -20,7 +20,7 @@ def cana2cupyLUT(net: cana.BooleanNetwork) -> tuple[cp.ndarray, cp.ndarray]:
     -------
     tuple[cp.ndarray, cp.ndarray]
         Returns a merged lookup table that contains the output column of each rule's
-        lookup table (padded by False values). Also returns and inputs table, which 
+        lookup table (padded by False values). Also returns and inputs table, which
         contains the inputs for each node (padded by -1).
     """
     outs = [u.outputs for u in net.nodes]
@@ -105,3 +105,28 @@ def network_rules_from_cana(BN: cana.BooleanNetwork) -> str:
         alg_rule += "\n"
 
     return alg_rule[:-1]
+
+def cpp2bnet(cpp_rules: str) -> str:
+    """
+    Converts the rules in C++ format to bnet format
+
+    Parameters
+    ----------
+    cpp_rules : str
+        rules in the C++ form
+        Ex.: A,\tA||B&&C\nB,\tC\nC,\tA||B
+
+    Returns
+    -------
+    str
+        rules in the bnet form
+        Ex.: A, A|B&C\nB, C\nC, A|B
+    """
+    bnet_rules = ''
+    for line in cpp_rules.split('\n'):
+        if not line.startswith('#'):
+            line = line.replace('&&', '&')
+            line = line.replace('||', '|')
+        bnet_rules += line
+        bnet_rules += '\n'
+    return bnet_rules
