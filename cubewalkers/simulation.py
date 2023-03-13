@@ -110,22 +110,20 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
     return trajectories
 
-
-def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
+def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
                           N: int, T: int, W: int, T_sample: int = 1,
-                          fuzzy_coherence: bool = False,
                           lookup_tables: cp.ndarray | None = None,
                           maskfunction: callable = synchronous,
                           threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
-    """Computes the quasicoherence in response to perturbation of source node index, averaging
-    trajectories from t=T-T_sample+1 to T.
+    """Computes the trajectories in response to a perturbation of the source node index,
+    and returns summed up trajectories and summed up differences (3 arrays of N*W)
 
     Parameters
     ----------
     kernel : cp.RawKernel
         CuPy RawKernel that provides the update functions (see parser module).
     source : int | list[int]
-        Index or indices of node(s) to perturb for coherence calculation.
+        Index or indices of node(s) to perturb.
     N : int
         Number of nodes in the network.
     T : int
@@ -133,11 +131,7 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
     W : int
         Number of ensemble walkers to simulate.
     T_sample : int, optional
-        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
-    fuzzy_coherence : bool, optional
-        If False (default), trajectroies are marked as either in agreement (1) or not in
-        agreement (0) depending on whether fixed nodes are in agreement. If True, the
-        average absolute difference between state vectors is used instead.
+        Number of time points to use for summing (t=T-T_sample+1 to t=T), by default, 1.
     lookup_tables : cp.ndarray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
@@ -146,16 +140,19 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
     maskfunction : callable, optional
         Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
-        For coherence, if the maskfunction is state-dependent, then the unperturbed
-        trajectory is used.
+        If the maskfunction is state-dependent, then the unperturbed trajectory is used.
     threads_per_block : tuple[int, int], optional
         How many threads should be in each block for each dimension of the N x W array,
         by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------
-    cp.ndarray
-        The estimated value of the quasicoherence response to the source node perturbation.
+    trajU : cp.ndarray
+        The trajectory without perturbation summed up from t=T-T_sample+1 to t=T.
+    trajP : cp.ndarray
+        The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
+    diff : cp.ndarray
+        The differences in trajU and trajP summed up from t=T-T_sample+1 to t=T.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1]+1,
@@ -177,6 +174,7 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
     # store trajectories for quasicoherence computation
     trajU = cp.zeros((N, W), dtype=cp.int32)
     trajP = cp.zeros((N, W), dtype=cp.int32)
+    diff = cp.zeros((N, W), dtype=cp.int32)
 
     # begin simulation
     for t in range(T):
@@ -199,7 +197,34 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
         if t >= T-T_sample:
             trajU[:, :] += outU.astype(cp.int32)
             trajP[:, :] += outP.astype(cp.int32)
+            diff[:, :] += (outU^outP).astype(cp.int32)
     
+    return trajU, trajP, diff
+
+def source_quasicoherence(trajU: cp.ndarray,
+                          trajP: cp.ndarray,
+                          T_sample: int = 1,
+                          fuzzy_coherence: bool = False) -> cp.ndarray:
+    """Computes the quasicoherence in response to perturbation of source node index,
+    averaging trajectories from t=T-T_sample+1 to T.
+
+    Parameters
+    ----------
+    trajU, trajP : cp.ndarray
+        The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
+    T_sample : int, optional
+        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+    fuzzy_coherence : bool, optional
+        If False (default), trajectroies are marked as either in agreement (1) or not in
+        agreement (0) depending on whether fixed nodes are in agreement. If True, the
+        average absolute difference between state vectors is used instead.
+
+    Returns
+    -------
+    cp.ndarray
+        The estimated value of the quasicoherence response to the source node perturbation.
+    """
+
     if fuzzy_coherence:
         quasicoherence_array = 1-cp.abs(trajU-trajP)/T_sample
         quasicoherence = cp.mean(quasicoherence_array)
@@ -213,6 +238,28 @@ def source_quasicoherence(kernel: cp.RawKernel, source: int | list[int],
     
     return quasicoherence
 
+def source_final_hamming_distance(diff: cp.ndarray,
+                                  T_sample: int = 1) -> cp.ndarray:
+    """Computes the final hamming distance in response to perturbation of source node index,
+    averaging hamming distances from t=T-T_sample+1 to T.
+
+    Parameters
+    ----------
+    diff : cp.ndarray
+        The trajectories in response to the source node perturbation.
+    T_sample : int, optional
+        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+
+    Returns
+    -------
+    cp.ndarray
+        The estimated value of the final hamming distance response to the source node perturbation.
+    """
+
+    final_hamming_distance_array = diff/T_sample
+    final_hamming_distance = cp.mean(cp.sum(final_hamming_distance_array, axis=0))
+    
+    return final_hamming_distance
 
 def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
                      N: int, T: int, W: int,

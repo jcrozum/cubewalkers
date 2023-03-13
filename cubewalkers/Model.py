@@ -3,7 +3,7 @@ import warnings
 
 import cupy as cp
 
-from cubewalkers import conversions, simulation, parser, initial_conditions
+from cubewalkers import simulation, parser, initial_conditions
 
 # for default update scheme
 from cubewalkers.update_schemes import synchronous, asynchronous
@@ -335,17 +335,20 @@ class Model():
         else:
             source = [self.vardict[sv] for sv in source_var]
 
-        return simulation.source_quasicoherence(
-            self.kernel,
-            source,
-            self.n_variables,
-            n_time_steps,
-            n_walkers,
-            T_sample=T_sample,
-            fuzzy_coherence=fuzzy_coherence,
-            lookup_tables=self.lookup_tables,
-            maskfunction=maskfunction,
-            threads_per_block=threads_per_block)
+        trajU, trajP, diff = simulation.simulate_perturbation(self.kernel,
+                                                              source,
+                                                              self.n_variables,
+                                                              n_time_steps,
+                                                              n_walkers,
+                                                              T_sample=T_sample,
+                                                              lookup_tables=self.lookup_tables,
+                                                              maskfunction=maskfunction,
+                                                              threads_per_block=threads_per_block)
+
+        return simulation.source_quasicoherence(trajU,
+                                                trajP,
+                                                T_sample=T_sample,
+                                                fuzzy_coherence=fuzzy_coherence)
 
     def quasicoherence(self,
                   n_time_steps: int | None = None,
@@ -368,7 +371,7 @@ class Model():
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
         fuzzy_coherence : bool, optional
-            If False (default), trajectroies are marked as either in agreement (1) or not in
+            If False (default), trajectories are marked as either in agreement (1) or not in
             agreement (0) depending on whether fixed nodes are in agreement. If True, the
             average absolute difference between state vectors is used instead.
         maskfunction : callable, optional
@@ -392,17 +395,130 @@ class Model():
 
         c = 0
         for source_ind in range(self.n_variables):
-            c += simulation.source_quasicoherence(
-                self.kernel,
-                source_ind,
-                self.n_variables,
-                n_time_steps,
-                n_walkers,
-                T_sample=T_sample,
-                fuzzy_coherence=fuzzy_coherence,
-                lookup_tables=self.lookup_tables,
-                maskfunction=maskfunction,
-                threads_per_block=threads_per_block)
+            trajU, trajP, diff = simulation.simulate_perturbation(self.kernel,
+                                                                  source_ind,
+                                                                  self.n_variables,
+                                                                  n_time_steps,
+                                                                  n_walkers,
+                                                                  T_sample=T_sample,
+                                                                  lookup_tables=self.lookup_tables,
+                                                                  maskfunction=maskfunction,
+                                                                  threads_per_block=threads_per_block)
+
+            c += simulation.source_quasicoherence(trajU,
+                                                  trajP,
+                                                  T_sample=T_sample,
+                                                  fuzzy_coherence=fuzzy_coherence)
+
+        return c/self.n_variables
+
+    def source_final_hamming_distance(self,
+                                      source_var: str | list[str],
+                                      n_time_steps: int | None = None,
+                                      n_walkers: int | None = None,
+                                      T_sample: int = 1,
+                                      maskfunction: callable = synchronous,
+                                      threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the final hamming distance in response to perturbation of source node index,
+        averaging hamming distances from t=T-T_sample+1 to T.
+
+        Parameters
+        ----------
+        source_var : str | list[str]
+            Name(s) of variable(s) to find the Hamming distance with respect to.
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the final Hamming distance.
+            By default, use internally stored variable `n_walkers`, which itself defaults to 1.
+        T_sample : int, optional
+            Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            if the maskfunction is state-dependent, then the unperturbed trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            The estimated value of the final Hamming distance response to the source node perturbation.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        if isinstance(source_var, str):
+            source = self.vardict[source_var]
+        else:
+            source = [self.vardict[sv] for sv in source_var]
+
+        trajU, trajP, diff = simulation.simulate_perturbation(self.kernel,
+                                                              source,
+                                                              self.n_variables,
+                                                              n_time_steps,
+                                                              n_walkers,
+                                                              T_sample=T_sample,
+                                                              lookup_tables=self.lookup_tables,
+                                                              maskfunction=maskfunction,
+                                                              threads_per_block=threads_per_block)
+
+        return simulation.source_final_hamming_distance(diff, T_sample=T_sample)
+
+    def final_hamming_distance(self,
+                               n_time_steps: int | None = None,
+                               n_walkers: int | None = None,
+                               T_sample: int = 1,
+                               maskfunction: callable = synchronous,
+                               threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+        """Computes the final Hamming distance in response to perturbation of single nodes,
+        averaging Hamming distances from t=T-T_sample+1 to T.
+
+        Parameters
+        ----------
+        n_time_steps : int | None, optional
+            Number of timesteps to simulate. By default, use internally stored variable
+            `n_time_steps`, which itself defaults to 1.
+        n_walkers : int | None, optional
+            How many walkers to use to estimate the final Hamming distance.
+            By default, use internally stored variable `n_walkers`, which itself defaults to 1.
+        T_sample : int, optional
+            Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        maskfunction : callable, optional
+            Function that returns a mask for selecting which node values to update. 
+            By default, uses the synchronous update scheme. See update_schemes for examples.
+            If the maskfunction is state-dependent, then the unperturbed trajectory is used.
+        threads_per_block : tuple[int, int], optional
+            How many threads should be in each block for each dimension of the N x W array, 
+            by default (32, 32). See CUDA documentation for details.
+
+        Returns
+        -------
+        cp.ndarray
+            The estimated value of the final Hamming distance response to single node perturbations.
+        """
+        if n_time_steps is None:
+            n_time_steps = self.n_time_steps
+        if n_walkers is None:
+            n_walkers = self.n_walkers
+
+        c = 0
+        for source_ind in range(self.n_variables):
+            trajU, trajP, diff = simulation.simulate_perturbation(self.kernel,
+                                                                  source_ind,
+                                                                  self.n_variables,
+                                                                  n_time_steps,
+                                                                  n_walkers,
+                                                                  T_sample=T_sample,
+                                                                  lookup_tables=self.lookup_tables,
+                                                                  maskfunction=maskfunction,
+                                                                  threads_per_block=threads_per_block)
+
+            c += simulation.source_final_hamming_distance(diff, T_sample=T_sample)
 
         return c/self.n_variables
 
