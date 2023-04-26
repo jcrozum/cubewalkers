@@ -35,9 +35,9 @@ class Experiment:
             Empty lines and lines beginning with this character are ignored, by default '#'.
         """
         override_list = sorted(StringIO(override_string))
-        self.overrides = {}
-        self.edge_subs = {}
-        self.force_update_time_strings = {}
+        self.overrides: dict[str,str] = {}
+        self.edge_subs: dict[str,list[tuple[str|None,str]]] = {}
+        self.force_update_time_strings: dict[str,str] = {}
 
         for s in override_list:
             s = s.lstrip()

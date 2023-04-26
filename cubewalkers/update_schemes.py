@@ -1,7 +1,11 @@
 from __future__ import annotations
-import cupy as cp
+from typing import TYPE_CHECKING
+import cupy as cp  # type: ignore
+if TYPE_CHECKING:
+    from typing import Any
+    from custom_typing import RawKernelType
 
-asynchronous_kernel = cp.RawKernel(r'''
+asynchronous_kernel: RawKernelType = cp.RawKernel(r'''
 extern "C" __global__
 void asynchronous(const int* x1, int* z, int N, int W) {
     int w_reserved = blockDim.x * blockIdx.x + threadIdx.x;
@@ -16,7 +20,7 @@ void asynchronous(const int* x1, int* z, int N, int W) {
 ''', 'asynchronous')
 
 
-def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def asynchronous(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that randomly selects a single node to be updated at each timestep.
 
     Parameters
@@ -41,12 +45,12 @@ def asynchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
         tpb = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
     x1 = x1.astype(cp.int32)
-    z = cp.zeros((n, w), dtype=cp.int32)
+    z = cp.zeros((n, w), dtype=cp.int32)  # type: ignore
     asynchronous_kernel((w//tpb[1]+1, n//tpb[0]+1), tpb, (x1, z, n, w))
     return z.astype(cp.float32)
 
 
-def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def asynchronous_PBN(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that randomly selects a single node to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
@@ -72,15 +76,15 @@ def asynchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
         tpb = (32, 32)
     x1 = cp.floor(cp.random.random(size=(w,))*n)
     x1 = x1.astype(cp.int32)
-    z = cp.zeros((n, w), dtype=cp.int32)
+    z = cp.zeros((n, w), dtype=cp.int32)  # type: ignore
     asynchronous_kernel((w//tpb[1]+1, n//tpb[0]+1), tpb, (x1, z, n, w))
     z = z.astype(cp.float32)
 
-    x = 1 - cp.random.random(w, dtype=cp.float32)
+    x = 1 - cp.random.random(w, dtype=cp.float32)  # type: ignore
     return x * z
 
 
-def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def asynchronous_set(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
 
     Parameters
@@ -103,12 +107,12 @@ def asynchronous_set(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndar
         prob = kwargs["set_update_prob"]
     except:
         prob = 0.5
-    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.random.random((n, w), dtype=cp.float32)  # type: ignore
     z = cp.ceil(prob-z)
     return z
 
 
-def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
@@ -132,12 +136,12 @@ def asynchronous_set_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.
         prob = kwargs["set_update_prob"]
     except:
         prob = 0.5
-    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.random.random((n, w), dtype=cp.float32)  # type: ignore
     mz = cp.ceil(prob-z)
     return z * mz / prob
 
 
-def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. All nodes use the same value,
     but each walker uses an independently generated value.
@@ -162,13 +166,13 @@ def asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwar
         prob = kwargs["set_update_prob"]
     except:
         prob = 0.5
-    z = cp.random.random((n, w), dtype=cp.float32)
+    z = cp.random.random((n, w), dtype=cp.float32)  # type: ignore
     z = cp.ceil(prob-z)
-    x = 1 - cp.random.random(w, dtype=cp.float32)
+    x = 1 - cp.random.random(w, dtype=cp.float32)  # type: ignore
     return x * z
 
 
-def synchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def synchronous(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that updates all nodes at each timestep.
 
     Parameters
@@ -187,10 +191,10 @@ def synchronous(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    return cp.ones((n, w), dtype=cp.float32)
+    return cp.ones((n, w), dtype=cp.float32)  # type: ignore
 
 
-def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def synchronous_PBN(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. Each value is indepently generated for each node.
 
@@ -210,10 +214,10 @@ def synchronous_PBN(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarr
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    return 1 - cp.random.random((n, w), dtype=cp.float32)
+    return 1 - cp.random.random((n, w), dtype=cp.float32)  # type: ignore
 
 
-def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -> cp.ndarray:
+def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.typing.NDArray, **kwargs: Any) -> cp.typing.NDArray:
     """Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. All nodes use the same value, but each walker uses an independently generated
     value.
@@ -234,6 +238,6 @@ def synchronous_PBN_dependent(t: int, n: int, w: int, a: cp.ndarray, **kwargs) -
     cp.ndarray
         Update mask array. Entry value can be used by update function for PBN support.
     """
-    z = cp.ones((n, w), dtype=cp.float32)
-    x = 1 - cp.random.random(w, dtype=cp.float32)
+    z = cp.ones((n, w), dtype=cp.float32)  # type: ignore
+    x = 1 - cp.random.random(w, dtype=cp.float32)  # type: ignore
     return x * z

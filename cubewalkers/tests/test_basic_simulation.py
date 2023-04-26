@@ -28,6 +28,7 @@ test_converge_to_zero = """
                         B* = A & !B
 """
 
+
 def test_simulation_syncronous():
     test_experiment = cw.Experiment(experiment_string)
     test_model = cw.Model(test_rules,
@@ -55,16 +56,18 @@ def test_twindow_synchronous():
                           n_time_steps=100,
                           n_walkers=100,
                           model_name="test_twindow_synchronous_model")
-    test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous, 
+    test_model.simulate_ensemble(maskfunction=cw.update_schemes.synchronous,
                                  T_window=T_window,
                                  averages_only=False)
-    
+
     N = test_model.n_variables
     W = test_model.n_walkers
-    
-    expected_output = cp.zeros((T_window,N,W),dtype=cp.bool_)
-    
+
+    expected_output = cp.zeros(
+        (T_window, N, W), dtype=cp.bool_)  # type: ignore
+
     assert cp.sum(test_model.trajectories != expected_output) == 0
+
 
 def test_lut_simulation_synchronous():
     lut_test_rules = """
@@ -108,8 +111,8 @@ def test_lut_simulation_synchronous():
     test_model_with_lut.simulate_ensemble(
         maskfunction=cw.update_schemes.synchronous)
 
-    assert(cp.sum(test_model_with_rules.trajectories !=
-           test_model_with_lut.trajectories) == 0)
+    assert (cp.sum(test_model_with_rules.trajectories !=
+                   test_model_with_lut.trajectories) == 0)
 
 
 def test_simulation_syncronous_constant():
@@ -140,7 +143,7 @@ def test_unforced_experiment():
                           model_name="test_unforced_experiment")
 
     def bespoke_updater(t, n, w, a, **kwargs):
-        mask = cp.ones((n, w), dtype=cp.float32)
+        mask = cp.ones((n, w), dtype=cp.float32)  # type: ignore
         if t >= 1:
             mask[0, :] = cp.float32(0)
         return mask

@@ -5,7 +5,7 @@ from cubewalkers import parser
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    import cana
+    import cana  # type: ignore
 
 
 def cana2cupyLUT(net: cana.BooleanNetwork) -> tuple[cp.ndarray, cp.ndarray]:
@@ -105,6 +105,7 @@ def network_rules_from_cana(BN: cana.BooleanNetwork) -> str:
         alg_rule += "\n"
 
     return alg_rule[:-1]
+
 
 def cpp2bnet(cpp_rules: str) -> str:
     """

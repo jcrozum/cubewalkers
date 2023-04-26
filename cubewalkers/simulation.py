@@ -1,23 +1,25 @@
 from __future__ import annotations
-import cupy as cp
+from typing import TYPE_CHECKING
+import cupy as cp  # type: ignore
 from cubewalkers.update_schemes import synchronous, asynchronous
 
-import cubewalkers as cw
+if TYPE_CHECKING:
+    from custom_typing import RawKernelType, MaskFunctionType
 
 
-def simulate_ensemble(kernel: cp.RawKernel,
+def simulate_ensemble(kernel: RawKernelType,
                       N: int, T: int, W: int, T_window: int | None = None,
-                      lookup_tables: cp.ndarray | None = None,
+                      lookup_tables: cp.typing.NDArray | None = None,
                       averages_only: bool = False,
-                      initial_states: cp.ndarray | None = None,
-                      maskfunction: callable = synchronous,
+                      initial_states: cp.typing.NDArray | None = None,
+                      maskfunction: MaskFunctionType = synchronous,
                       threads_per_block: tuple[int, int] = (32, 32),
-                      set_update_prob: float = 0.5) -> cp.ndarray:
+                      set_update_prob: float = 0.5) -> cp.typing.NDArray:
     """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
 
     Parameters
     ----------
-    kernel : cp.RawKernel
+    kernel : RawKernelType
         CuPy RawKernel that provides the update functions (see parser module).
     N : int
         Number of nodes in the network.
@@ -28,18 +30,18 @@ def simulate_ensemble(kernel: cp.RawKernel,
     T_window : int, optional
         Number of time points to keep (from t=T-T_window+1 to t=T). If None (default),
         keep all time points.
-    lookup_tables : cp.ndarray, optional
+    lookup_tables : cp.typing.NDArray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
-    initial_states : cp.ndarray | None, optional
+    initial_states : cp.typing.NDArray | None, optional
         N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
         (default), initial states are randomly initialized.
     averages_only : bool, optional
         If True, stores only average node values at each timestep.
         Otherwise, stores node values for each walker. By default False.
-    maskfunction : callable, optional
+    maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
     threads_per_block : tuple[int, int], optional
@@ -61,6 +63,8 @@ def simulate_ensemble(kernel: cp.RawKernel,
     # table (note that the LUTs must be padded to equal lengths)
     if lookup_tables is not None:
         L = len(lookup_tables[0])
+    else:
+        L = None
 
     # initialize output array (will copy to input on first timestep)
     if initial_states is None:
@@ -73,10 +77,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
     # initialize return array
     if averages_only:
-        trajectories = cp.ones((T_window, N), dtype=cp.float_)
+        trajectories = cp.ones((T_window, N), dtype=cp.float_)  # type: ignore
         trajectories[0] = cp.mean(out, axis=1)
     else:
-        trajectories = cp.ones((T_window, N, W), dtype=cp.bool_)
+        trajectories = cp.ones(
+            (T_window, N, W), dtype=cp.bool_)  # type: ignore
         trajectories[0, :, :] = out.copy()
 
     # simulation begins here
@@ -85,11 +90,11 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
         # compute which variables to update
         mask = maskfunction(t, N, W, arr,
-                            threads_per_block=threads_per_block,
-                            set_update_prob=set_update_prob)
+                            threads_per_block=threads_per_block,  # type: ignore
+                            set_update_prob=set_update_prob)  # type: ignore
 
         # run the update on the GPU
-        if lookup_tables is None:
+        if L is None:
             kernel(blocks_per_grid, threads_per_block,
                    (arr, mask, out, t, N, W))
         else:
@@ -110,17 +115,18 @@ def simulate_ensemble(kernel: cp.RawKernel,
 
     return trajectories
 
-def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
+
+def simulate_perturbation(kernel: RawKernelType, source: int | list[int],
                           N: int, T: int, W: int, T_sample: int = 1,
-                          lookup_tables: cp.ndarray | None = None,
-                          maskfunction: callable = synchronous,
-                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                          lookup_tables: cp.typing.NDArray | None = None,
+                          maskfunction: MaskFunctionType = synchronous,
+                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.typing.NDArray:
     """Computes the trajectories in response to a perturbation of the source node index,
     and returns summed up trajectories and summed up differences (3 arrays of N*W)
 
     Parameters
     ----------
-    kernel : cp.RawKernel
+    kernel : RawKernelType
         CuPy RawKernel that provides the update functions (see parser module).
     source : int | list[int]
         Index or indices of node(s) to perturb.
@@ -132,12 +138,12 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
         Number of ensemble walkers to simulate.
     T_sample : int, optional
         Number of time points to use for summing (t=T-T_sample+1 to t=T), by default, 1.
-    lookup_tables : cp.ndarray, optional
+    lookup_tables : cp.typing.NDArray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
-    maskfunction : callable, optional
+    maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
         If the maskfunction is state-dependent, then the unperturbed trajectory is used.
@@ -147,11 +153,11 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
 
     Returns
     -------
-    trajU : cp.ndarray
+    trajU : cp.typing.NDArray
         The trajectory without perturbation summed up from t=T-T_sample+1 to t=T.
-    trajP : cp.ndarray
+    trajP : cp.typing.NDArray
         The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
-    diff : cp.ndarray
+    diff : cp.typing.NDArray
         The differences in trajU and trajP summed up from t=T-T_sample+1 to t=T.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
@@ -165,6 +171,8 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
     # table (note that the LUTs must be padded to equal lengths)
     if lookup_tables is not None:
         L = len(lookup_tables[0])
+    else:
+        L = None
 
     # initial conditions
     outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
@@ -172,9 +180,9 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
     outP[source, :] = ~outP[source, :]
 
     # store trajectories for quasicoherence computation
-    trajU = cp.zeros((N, W), dtype=cp.int32)
-    trajP = cp.zeros((N, W), dtype=cp.int32)
-    diff = cp.zeros((N, W), dtype=cp.int32)
+    trajU = cp.zeros((N, W), dtype=cp.int32)  # type: ignore
+    trajP = cp.zeros((N, W), dtype=cp.int32)  # type: ignore
+    diff = cp.zeros((N, W), dtype=cp.int32)  # type: ignore
 
     # begin simulation
     for t in range(T):
@@ -184,7 +192,7 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
         mask = maskfunction(t, N, W, arrU)
 
         # run the update on the GPU for the two states
-        if lookup_tables is None:
+        if L is None:
             kernel(blocks_per_grid, threads_per_block,
                    (arrU, mask, outU, t, N, W))
             kernel(blocks_per_grid, threads_per_block,
@@ -197,20 +205,21 @@ def simulate_perturbation(kernel: cp.RawKernel, source: int | list[int],
         if t >= T-T_sample:
             trajU[:, :] += outU.astype(cp.int32)
             trajP[:, :] += outP.astype(cp.int32)
-            diff[:, :] += (outU^outP).astype(cp.int32)
-    
+            diff[:, :] += (outU ^ outP).astype(cp.int32)
+
     return trajU, trajP, diff
 
-def source_quasicoherence(trajU: cp.ndarray,
-                          trajP: cp.ndarray,
+
+def source_quasicoherence(trajU: cp.typing.NDArray,
+                          trajP: cp.typing.NDArray,
                           T_sample: int = 1,
-                          fuzzy_coherence: bool = False) -> cp.ndarray:
+                          fuzzy_coherence: bool = False) -> cp.typing.NDArray:
     """Computes the quasicoherence in response to perturbation of source node index,
     averaging trajectories from t=T-T_sample+1 to T.
 
     Parameters
     ----------
-    trajU, trajP : cp.ndarray
+    trajU, trajP : cp.typing.NDArray
         The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
     T_sample : int, optional
         Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
@@ -235,17 +244,18 @@ def source_quasicoherence(trajU: cp.ndarray,
                                 & (trajU < T_sample) & (trajP < T_sample))
 
         quasicoherence = cp.mean(cp.mean(quasicoherence_array, axis=0) == 1)
-    
+
     return quasicoherence
 
-def source_final_hamming_distance(diff: cp.ndarray,
-                                  T_sample: int = 1) -> cp.ndarray:
+
+def source_final_hamming_distance(diff: cp.typing.NDArray,
+                                  T_sample: int = 1) -> cp.typing.NDArray:
     """Computes the final hamming distance in response to perturbation of source node index,
     averaging hamming distances from t=T-T_sample+1 to T.
 
     Parameters
     ----------
-    diff : cp.ndarray
+    diff : cp.typing.NDArray
         The trajectories in response to the source node perturbation.
     T_sample : int, optional
         Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
@@ -257,21 +267,23 @@ def source_final_hamming_distance(diff: cp.ndarray,
     """
 
     final_hamming_distance_array = diff/T_sample
-    final_hamming_distance = cp.mean(cp.sum(final_hamming_distance_array, axis=0))
-    
+    final_hamming_distance = cp.mean(
+        cp.sum(final_hamming_distance_array, axis=0))
+
     return final_hamming_distance
 
-def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
+
+def dynamical_impact(kernel: RawKernelType, source: int | list[int],
                      N: int, T: int, W: int,
-                     lookup_tables: cp.ndarray | None = None,
-                     maskfunction: callable = synchronous,
-                     threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                     lookup_tables: cp.typing.NDArray | None = None,
+                     maskfunction: MaskFunctionType = synchronous,
+                     threads_per_block: tuple[int, int] = (32, 32)) -> cp.typing.NDArray:
     """Computes the dynamical impact of the source node index on all others (including
     itself, from time=0 to time=T).
 
     Parameters
     ----------
-    kernel : cp.RawKernel
+    kernel : RawKernelType
         CuPy RawKernel that provides the update functions (see parser module).
     source : int | list[int]
         Index or indices of node(s) to perturb for dynamical impact calculation.
@@ -281,12 +293,12 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         Number of timesteps to simulate.
     W : int
         Number of ensemble walkers to simulate.
-    lookup_tables : cp.ndarray, optional
+    lookup_tables : cp.typing.NDArray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
-    maskfunction : callable, optional
+    maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
         By default, uses the synchronous update scheme. See update_schemes for examples.
         For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
@@ -308,6 +320,8 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
     # table (note that the LUTs must be padded to equal lengths)
     if lookup_tables is not None:
         L = len(lookup_tables[0])
+    else:
+        L = None
 
     # initial conditions
     outU = cp.random.choice([cp.bool_(0), cp.bool_(1)], (N, W))
@@ -329,7 +343,7 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
         mask = maskfunction(t, N, W, arrU)
 
         # run the update on the GPU for the two states
-        if lookup_tables is None:
+        if L is None:
             kernel(blocks_per_grid, threads_per_block,
                    (arrU, mask, outU, t, N, W))
             kernel(blocks_per_grid, threads_per_block,
@@ -345,21 +359,21 @@ def dynamical_impact(kernel: cp.RawKernel, source: int | list[int],
     return impact
 
 
-def derrida_coefficient(kernel: cp.RawKernel,
+def derrida_coefficient(kernel: RawKernelType,
                         N: int, W: int,
-                        lookup_tables: cp.ndarray | None = None,
+                        lookup_tables: cp.typing.NDArray | None = None,
                         threads_per_block: tuple[int, int] = (32, 32)) -> float:
     """Estimates the Derrida coefficient.
 
     Parameters
     ----------
-    kernel : cp.RawKernel
+    kernel : RawKernelType
         CuPy RawKernel that provides the update functions (see parser module).
     N : int
         Number of nodes in the network.
     W : int
         Number of ensemble walkers to simulate.
-    lookup_tables : cp.ndarray, optional
+    lookup_tables : cp.typing.NDArray, optional
         A merged lookup table that contains the output column of each rule's
         lookup table (padded by False values). If provided, it is passed to the kernel,
         in which case the kernel must be a lookup-table-based kernel. If None (default),
@@ -380,20 +394,23 @@ def derrida_coefficient(kernel: cp.RawKernel,
 
     if lookup_tables is not None:
         L = lookup_tables.shape[1]
+    else:
+        L = None
 
     # initial conditions
-    outU = cp.random.random((N, W), dtype=cp.float32)
+    outU = cp.random.random((N, W), dtype=cp.float32)  # type: ignore
     outU = cp.ceil(0.5-outU).astype(cp.bool_)
-    outP = outU ^ asynchronous(None, N, W, None).astype(cp.bool_)
+    outP = outU ^ asynchronous(0, N, W, None).astype(
+        cp.bool_)  # type: ignore
 
     # get values from update
     arrU = outU.copy()  # get values from update
     arrP = outP.copy()
 
-    mask = synchronous(None, N, W, None)  # only defined for synchronous update
+    mask = synchronous(0, N, W, None)  # only defined for synchronous update
 
     # run the update on the GPU for the two states
-    if lookup_tables is None:
+    if L is None:
         kernel(blocks_per_grid, threads_per_block, (arrU, mask, outU, 1, N, W))
         kernel(blocks_per_grid, threads_per_block, (arrP, mask, outP, 1, N, W))
     else:

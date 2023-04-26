@@ -1,7 +1,7 @@
 from __future__ import annotations
 import warnings
 
-import cupy as cp
+import cupy as cp  # type: ignore
 
 from cubewalkers import simulation, parser, initial_conditions
 
@@ -15,6 +15,7 @@ import random
 from typing import TYPE_CHECKING, Iterable
 if TYPE_CHECKING:
     from Experiment import Experiment
+    from custom_typing import MaskFunctionType
 
 
 class Model():
@@ -22,11 +23,11 @@ class Model():
     the results of simulations on that network.
     """
     _automatic_model_name_length = 16
-    _automatic_model_names_taken = set()
+    _automatic_model_names_taken: set[str] = set()
 
     def __init__(self,
                  rules: str | None = None,
-                 lookup_tables: cp.ndarray | None = None,
+                 lookup_tables: cp.typing.NDArray | None = None,
                  node_regulators: Iterable[Iterable[int]] | None = None,
                  lookup_table_varnames: Iterable[str] | None = None,
                  initial_biases: str = "",
@@ -108,12 +109,15 @@ class Model():
                 skip_clean=True)
         else:
             self.mode = 'tabular'
+            if self.node_regulators is None or lookup_tables is None:
+                raise TypeError(
+                    "Must specify node_regulators and lookup_tables if rules are not provided.")
             self.kernel, self.code = parser.regulators2lutkernel(
                 self.node_regulators, self.name)
             if lookup_table_varnames is None:
                 self.varnames = [f'x{i}' for i in range(len(lookup_tables))]
             else:
-                self.varnames = lookup_table_varnames
+                self.varnames = list(lookup_table_varnames)
 
         self.vardict = {k: i for i, k in enumerate(self.varnames)}
 
@@ -137,7 +141,7 @@ class Model():
     def simulate_ensemble(self,
                           T_window: int | None = None,
                           averages_only: bool = False,
-                          maskfunction: callable = synchronous,
+                          maskfunction: MaskFunctionType = synchronous,
                           threads_per_block: tuple[int, int] = (32, 32),
                           set_update_prob: float = 0.5) -> None:
         """Simulates a random ensemble of walkers on the internally stored Boolean network.
@@ -151,7 +155,7 @@ class Model():
         averages_only : bool, optional
             If True, stores only average node values at each timestep.
             Otherwise, stores node values for each walker. By default False.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
             By default, uses the synchronous update scheme. See update_schemes for examples.
         threads_per_block : tuple[int, int], optional
@@ -178,7 +182,7 @@ class Model():
                             initial_state: cp.ndarray[cp.bool_],
                             n_time_steps: int | None = None,
                             n_walkers: int | None = None,
-                            maskfunction: callable = asynchronous,
+                            maskfunction: MaskFunctionType = asynchronous,
                             threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Returns the variance of trajectories that begin at the specified initial state.
         Note that the covariances are not, in general, zero.
@@ -193,7 +197,7 @@ class Model():
         n_walkers : int | None, optional
             How many walkers to use to estimate the impact. By default, use internally 
             stored variable `n_walkers`, which itself defaults to 1.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the asynchronous update scheme. See update_schemes for examples.
         threads_per_block : tuple[int, int], optional
@@ -232,7 +236,7 @@ class Model():
                          source_var: str | list[str],
                          n_time_steps: int | None = None,
                          n_walkers: int | None = None,
-                         maskfunction: callable = synchronous,
+                         maskfunction: MaskFunctionType = synchronous,
                          threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the dynamical impact of the source node index on all others (including
         itself, from time=0 to time=T).
@@ -247,7 +251,7 @@ class Model():
         n_walkers : int | None, optional
             How many walkers to use to estimate the impact. By default, use internally 
             stored variable `n_walkers`, which itself defaults to 1.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
             For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
@@ -285,13 +289,13 @@ class Model():
             threads_per_block=threads_per_block)
 
     def source_quasicoherence(self,
-                         source_var: str | list[str],
-                         n_time_steps: int | None = None,
-                         n_walkers: int | None = None,
-                         T_sample: int = 1,
-                         fuzzy_coherence: bool = False,
-                         maskfunction: callable = synchronous,
-                         threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                              source_var: str | list[str],
+                              n_time_steps: int | None = None,
+                              n_walkers: int | None = None,
+                              T_sample: int = 1,
+                              fuzzy_coherence: bool = False,
+                              maskfunction: MaskFunctionType = synchronous,
+                              threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the quasicoherence in response to perturbation of source node index, averaging
         trajectories from t=T-T_sample+1 to T.
 
@@ -311,7 +315,7 @@ class Model():
             If False (default), trajectroies are marked as either in agreement (1) or not in
             agreement (0) depending on whether fixed nodes are in agreement. If True, the
             average absolute difference between state vectors is used instead.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
             For coherence, if the maskfunction is state-dependent, then the unperturbed
@@ -351,12 +355,12 @@ class Model():
                                                 fuzzy_coherence=fuzzy_coherence)
 
     def quasicoherence(self,
-                  n_time_steps: int | None = None,
-                  n_walkers: int | None = None,
-                  T_sample: int = 1,
-                  fuzzy_coherence: bool = False,
-                  maskfunction: callable = synchronous,
-                  threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
+                       n_time_steps: int | None = None,
+                       n_walkers: int | None = None,
+                       T_sample: int = 1,
+                       fuzzy_coherence: bool = False,
+                       maskfunction: MaskFunctionType = synchronous,
+                       threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the quasicoherence in response to perturbation of single nodes, averaging
         trajectories from t=T-T_sample+1 to T.
 
@@ -374,7 +378,7 @@ class Model():
             If False (default), trajectories are marked as either in agreement (1) or not in
             agreement (0) depending on whether fixed nodes are in agreement. If True, the
             average absolute difference between state vectors is used instead.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
             For coherence, if the maskfunction is state-dependent, then the unperturbed
@@ -417,7 +421,7 @@ class Model():
                                       n_time_steps: int | None = None,
                                       n_walkers: int | None = None,
                                       T_sample: int = 1,
-                                      maskfunction: callable = synchronous,
+                                      maskfunction: MaskFunctionType = synchronous,
                                       threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the final hamming distance in response to perturbation of source node index,
         averaging hamming distances from t=T-T_sample+1 to T.
@@ -434,7 +438,7 @@ class Model():
             By default, use internally stored variable `n_walkers`, which itself defaults to 1.
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
             if the maskfunction is state-dependent, then the unperturbed trajectory is used.
@@ -473,7 +477,7 @@ class Model():
                                n_time_steps: int | None = None,
                                n_walkers: int | None = None,
                                T_sample: int = 1,
-                               maskfunction: callable = synchronous,
+                               maskfunction: MaskFunctionType = synchronous,
                                threads_per_block: tuple[int, int] = (32, 32)) -> cp.ndarray:
         """Computes the final Hamming distance in response to perturbation of single nodes,
         averaging Hamming distances from t=T-T_sample+1 to T.
@@ -488,7 +492,7 @@ class Model():
             By default, use internally stored variable `n_walkers`, which itself defaults to 1.
         T_sample : int, optional
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
-        maskfunction : callable, optional
+        maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update. 
             By default, uses the synchronous update scheme. See update_schemes for examples.
             If the maskfunction is state-dependent, then the unperturbed trajectory is used.
@@ -518,7 +522,8 @@ class Model():
                                                                   maskfunction=maskfunction,
                                                                   threads_per_block=threads_per_block)
 
-            c += simulation.source_final_hamming_distance(diff, T_sample=T_sample)
+            c += simulation.source_final_hamming_distance(
+                diff, T_sample=T_sample)
 
         return c/self.n_variables
 

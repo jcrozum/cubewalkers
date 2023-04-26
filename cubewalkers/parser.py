@@ -1,12 +1,12 @@
 from __future__ import annotations
-import cupy as cp
+import cupy as cp  # type: ignore
 from io import StringIO
 import re
 
 from typing import TYPE_CHECKING, Iterable
 if TYPE_CHECKING:
     from Experiment import Experiment
-    from cana.boolean_network import BooleanNetwork, BooleanNode
+    from custom_typing import RawKernelType
 
 
 def clean_rules(rules: str, comment_char: str = '#') -> str:
@@ -26,23 +26,23 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     """
 
     # if we're already using cpp logical operators, switch to single for now
-    s = re.sub("\|\|", "|", rules)
-    s = re.sub("\&\&", "&", s)
+    s = re.sub(r"\|\|", "|", rules)
+    s = re.sub(r"\&\&", "&", s)
     # make sure we're in proper bnet format
-    s = re.sub("\s*\*\s*=\s*", ",\t", s)  # replace "*=" with ",\t"
-    s = re.sub("\s+not\s+", " !", s, flags=re.IGNORECASE)  # not -> !
+    s = re.sub(r"\s*\*\s*=\s*", ",\t", s)  # replace "*=" with ",\t"
+    s = re.sub(r"\s+not\s+", " !", s, flags=re.IGNORECASE)  # not -> !
     # not -> ! (with parens)
-    s = re.sub("\(\s*not\s+", "(!", s, flags=re.IGNORECASE)
-    s = re.sub("\s*~\s*", " !", s, flags=re.IGNORECASE)  # ~ -> !
-    s = re.sub("\s+and\s+", " & ", s, flags=re.IGNORECASE)  # and -> &
-    s = re.sub("\s+or\s+", " | ", s, flags=re.IGNORECASE)  # or -> |
+    s = re.sub(r"\(\s*not\s+", "(!", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s*~\s*", " !", s, flags=re.IGNORECASE)  # ~ -> !
+    s = re.sub(r"\s+and\s+", " & ", s, flags=re.IGNORECASE)  # and -> &
+    s = re.sub(r"\s+or\s+", " | ", s, flags=re.IGNORECASE)  # or -> |
     # False -> 0 (ignore case)
     s = re.sub("False", "0", s, flags=re.IGNORECASE)
     s = re.sub("True", "1", s, flags=re.IGNORECASE)  # True -> 1 (ignore case)
 
     # now switch to cpp logical operators
-    s = re.sub("\s*\|\s*", " || ", s)
-    s = re.sub("\s*\&\s*", " && ", s)
+    s = re.sub(r"\s*\|\s*", " || ", s)
+    s = re.sub(r"\s*\&\s*", " && ", s)
 
     # PBN support
     s = re.sub("[<][<][=]",
@@ -60,7 +60,7 @@ def clean_rules(rules: str, comment_char: str = '#') -> str:
     return "".join(lines)
 
 
-def adjust_rules_for_experiment(rules: str, experiment: str) -> str:
+def adjust_rules_for_experiment(rules: str, experiment: Experiment | None) -> str:
     """Helper function that adjusts rules to incorporate the experimental conditions
     specified in the experiment string.
 
@@ -68,9 +68,8 @@ def adjust_rules_for_experiment(rules: str, experiment: str) -> str:
     ----------
     rules : str
         Rules to adjust. Assumes these have been cleaned.
-    experiment : str
-        Experimental conditions to incorporate. Each line should be of the form
-        NodeName,StartTime,EndTime,RuleToSubstitute
+    experiment : Experiment | None
+        Experiment object to use for rule adjustment; if None, do nothing.
 
     Returns
     -------
@@ -81,7 +80,7 @@ def adjust_rules_for_experiment(rules: str, experiment: str) -> str:
     if experiment is None:
         return rules
 
-    lines = []
+    lines: list[str] = []
     for line in StringIO(rules):
         lines.append(experiment.new_rule(line))
 
@@ -92,7 +91,7 @@ def bnet2rawkernel(rules: str,
                    kernel_name: str,
                    experiment: Experiment | None = None,
                    comment_char: str = '#',
-                   skip_clean: bool = False) -> cp.RawKernel:
+                   skip_clean: bool = False) -> tuple[RawKernelType, tuple[str], str]:
     """Generates a CuPy RawKernel that encodes update rules and experimental conditions.
 
     Parameters
@@ -131,7 +130,7 @@ def bnet2rawkernel(rules: str,
 
     # construct actual cpp code from reformatted rules
     varnames = tuple(line.split(',')[0] for line in StringIO(s))
-    #vardict = {k:i for i,k in enumerate(varnames)}
+    # vardict = {k:i for i,k in enumerate(varnames)}
 
     # Now, modify rules to incorporate experiment procedures
     s = adjust_rules_for_experiment(s, experiment)
@@ -167,11 +166,13 @@ def bnet2rawkernel(rules: str,
 
     cpp_body += '\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}'
 
-    return cp.RawKernel(cpp_body, kernel_name), varnames, cpp_body
+    kernel: RawKernelType = cp.RawKernel(cpp_body, kernel_name)  # type: ignore
+
+    return kernel, varnames, cpp_body
 
 
 def regulators2lutkernel(node_regulators: Iterable[Iterable[int]],
-                         kernel_name: str) -> cp.RawKernel:
+                         kernel_name: str) -> RawKernelType:
     """Constructs a CuPy RawKernel that simulates a network using lookup tables.
 
     Parameters
@@ -229,7 +230,8 @@ def regulators2lutkernel(node_regulators: Iterable[Iterable[int]],
     cpp_body += '\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}'
 
     # print(cpp_body)
-    return cp.RawKernel(cpp_body, kernel_name), cpp_body
+    kernel: RawKernelType = cp.RawKernel(cpp_body, kernel_name)  # type: ignore
+    return kernel, cpp_body
 
 
 def name_adjustment(name: str) -> str:
