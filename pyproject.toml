@@ -15,4 +15,4 @@ cana = ["cana"]
 mypy_path = ["stubs"]
 
 [tool.setuptools.package-data]
-"pkgname" = ["py.typed"]
+"cubewalkers" = ["py.typed"]
