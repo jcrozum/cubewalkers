@@ -3,11 +3,9 @@
 CUDA simulation of walkers on Boolean network state transition hypercubes. 
 
 # citation
-If you use `cubewalkers` in your research, please cite us! 
+If you use `cubewalkers` in your research, please cite us and check out our paper! 
 
-#### KH Park, FX Costa, LM Rocha, R Albert, JC Rozum. Models of cell processes are far from the edge of chaos. PRX Life (2023, accepted)
-
-This citation will be updated when the paper appears.
+> KH Park, FX Costa, LM Rocha, R Albert, JC Rozum. Models of cell processes are far from the edge of chaos. PRX Life **1**, 023009 (2023) https://doi.org/10.1103/PRXLife.1.023009
 
 # requirements and installation
 Requires `CuPy` (https://cupy.dev/), which in turn requires the `CUDA Toolkit` (https://developer.nvidia.com/cuda-toolkit) and a compatable GPU (https://developer.nvidia.com/cuda-gpus). See the `CuPy` installation guide (https://docs.cupy.dev/en/stable/install.html) for further information.
