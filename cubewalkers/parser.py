@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Iterable
 import cupy as cp  # type: ignore
 
 if TYPE_CHECKING:
+    from cubewalkers._experiment import Experiment
     from cubewalkers.custom_typing import RawKernelType
-    from cubewalkers.Experiment import Experiment
 
 
 def clean_rules(rules: str, comment_char: str = "#") -> str:
