@@ -8,7 +8,7 @@ import cupy as cp  # type: ignore
 
 if TYPE_CHECKING:
     from cubewalkers.custom_typing import RawKernelType
-    from cubewalkers.Experiment import Experiment
+    from cubewalkers.experiment import Experiment
 
 
 def clean_rules(rules: str, comment_char: str = "#") -> str:
