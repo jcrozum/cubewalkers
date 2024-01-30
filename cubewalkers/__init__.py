@@ -6,8 +6,8 @@ from cubewalkers import (
     simulation,
     update_schemes,
 )
-from cubewalkers._experiment import Experiment as Experiment
-from cubewalkers._model import Model as Model
+from cubewalkers.experiment import Experiment as Experiment
+from cubewalkers.model import Model as Model
 
 __all__ = [
     conversions,

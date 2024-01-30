@@ -15,8 +15,8 @@ from cubewalkers import initial_conditions, parser, simulation
 from cubewalkers.update_schemes import asynchronous, synchronous
 
 if TYPE_CHECKING:
-    from cubewalkers._experiment import Experiment
     from cubewalkers.custom_typing import MaskFunctionType
+    from cubewalkers.experiment import Experiment
 
 
 class Model:
