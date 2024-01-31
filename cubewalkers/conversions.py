@@ -40,8 +40,7 @@ def cana2cupyLUT(
     inps = [u.inputs for u in network_nodes]
     inpmax = len(max(inps, key=lambda x: len(x)))
     inps_pad = [
-        inp + [-1] * (inpmax - len(inp))
-        for inp in inps  # convert to bool
+        inp + [-1] * (inpmax - len(inp)) for inp in inps
     ]  # convert to booland pad for cupy
 
     out_columns: cp.NDArray = cp.array(outs_bool, dtype=cp.bool_)  # type: ignore
