@@ -14,12 +14,11 @@ def test_standard_heuristic():
     mymodel.n_time_steps = 3
     mymodel.n_walkers = 30  # doesn't matter too much what we pick for n_walkers
 
-    dynamical_impact = mymodel.dynamical_impact('A')
+    dynamical_impact = mymodel.dynamical_impact("A")
 
-    expected_impact = cp.array(
-        [[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 0]])
+    expected_impact = cp.array([[1, 0, 0, 0], [1, 1, 0, 0], [1, 1, 1, 0], [1, 1, 1, 0]])
 
-    assert(cp.all(dynamical_impact == expected_impact))
+    assert cp.all(dynamical_impact == expected_impact)
 
 
 def test_perturb_2():
@@ -27,12 +26,11 @@ def test_perturb_2():
     mymodel.n_time_steps = 3
     mymodel.n_walkers = 30  # doesn't matter too much what we pick for n_walkers
 
-    dynamical_impact = mymodel.dynamical_impact(['A', 'D'])
+    dynamical_impact = mymodel.dynamical_impact(["A", "D"])
 
-    expected_impact = cp.array(
-        [[1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
+    expected_impact = cp.array([[1, 0, 0, 1], [1, 1, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]])
 
-    assert(cp.all(dynamical_impact == expected_impact))
+    assert cp.all(dynamical_impact == expected_impact)
 
 
 def test_trajectory_variance():
@@ -41,4 +39,4 @@ def test_trajectory_variance():
     mymodel.n_walkers = 30
 
     trajectory_variance = mymodel.trajectory_variance([1, 1, 1, 1])
-    assert all([(trajectory_variance[i] == 0.).sum() >= 4-i for i in range(4)])
+    assert all([(trajectory_variance[i] == 0.0).sum() >= 4 - i for i in range(4)])
