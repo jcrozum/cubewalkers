@@ -6,11 +6,12 @@ from cubewalkers import parser
 
 
 class Experiment:
-    """Stores information from user-specified experimental inputs."""
+    """
+    Stores information from user-specified experimental inputs.
+    """
 
     def __init__(self, override_string: str, comment_char: str = "#") -> None:
-        """_summary_
-
+        """
         Parameters
         ----------
         override_string : str
@@ -92,7 +93,8 @@ class Experiment:
                     self.force_update_time_strings[varname] += "false"
 
     def new_rule(self, old_rule: str) -> str:
-        """Modifies an input rule to incorporate the time-dependent experimental conditions
+        """
+        Modifies an input rule to incorporate the time-dependent experimental conditions
         stored internally.
 
         Parameters
@@ -120,7 +122,8 @@ class Experiment:
         return varname + ",\t" + new_function + "\n"
 
     def time_clamp_string(self, varnames: Iterable[str]) -> str:
-        """Generates and returns a string that determines when the update mask should
+        """
+        Generates and returns a string that determines when the update mask should
         be ignored because of the experimental conditions.
 
         Parameters

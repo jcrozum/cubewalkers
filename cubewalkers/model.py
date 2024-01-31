@@ -20,7 +20,8 @@ if TYPE_CHECKING:
 
 
 class Model:
-    """Stores a Boolean network and experimental conditions, as well as generates and stores
+    """
+    Stores a Boolean network and experimental conditions, as well as generates and stores
     the results of simulations on that network.
     """
 
@@ -40,9 +41,7 @@ class Model:
         n_time_steps: int = 1,
         n_walkers: int = 1,
     ) -> None:
-        """Initializes Boolean network by generating a simulation kernel via
-        parser.bnet2rawkernel.
-
+        """
         Parameters
         ----------
         rules : str, optional
@@ -139,8 +138,9 @@ class Model:
         self.initialize_walkers()
 
     def initialize_walkers(self) -> None:
-        """Generates initial conditions from internally stored data. See the
-        initial_conditions module for details.
+        """
+        Generates initial conditions from internally stored data. See the
+        `initial_conditions` module for details.
         """
         self.initial_states = initial_conditions.initial_walker_states(
             self.initial_biases,
@@ -157,20 +157,21 @@ class Model:
         threads_per_block: tuple[int, int] = (32, 32),
         set_update_prob: float = 0.5,
     ) -> None:
-        """Simulates a random ensemble of walkers on the internally stored Boolean network.
+        """
+        Simulates a random ensemble of walkers on the internally stored Boolean network.
         Results are stored in the trajectories attribute.
 
         Parameters
         ----------
         T_window : int, optional
-            Number of time points to keep (from t=T-T_window+1 to t=T). If None (default),
+            Number of time points to keep (from t=T-T_window+1 to t=T). If `None` (default),
             keep all time points.
         averages_only : bool, optional
             If True, stores only average node values at each timestep.
-            Otherwise, stores node values for each walker. By default False.
+            Otherwise, stores node values for each walker. By default `False`.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array,
             by default (32, 32). See CUDA documentation for details.
@@ -203,13 +204,14 @@ class Model:
         maskfunction: MaskFunctionType = asynchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDarray:
-        """Returns the variance of trajectories that begin at the specified initial state.
+        """
+        Returns the variance of trajectories that begin at the specified initial state.
         Note that the covariances are not, in general, zero.
 
         Parameters
         ----------
-        initial_state : cp.NDArray[cp.bool_]
-            The initial state to use. Will cast to cp.bool_ if other dtype is provided.
+        initial_state : cp.NDArray[cp.bool]
+            The initial state to use. Will cast to `cupy.bool` if other dtype is provided.
         n_time_steps : int | None, optional
             Number of timesteps to simulate. By default, use internally stored variable
             `n_time_steps`, which itself defaults to 1.
@@ -218,7 +220,7 @@ class Model:
             stored variable `n_walkers`, which itself defaults to 1.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the asynchronous update scheme. See update_schemes for examples.
+            By default, uses the asynchronous update scheme. See `update_schemes` for examples.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array,
             by default (32, 32). See CUDA documentation for details.
@@ -263,7 +265,8 @@ class Model:
         maskfunction: MaskFunctionType = synchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDArray:
-        """Computes the dynamical impact of the source node index on all others (including
+        """
+        Computes the dynamical impact of the source node index on all others (including
         itself, from time=0 to time=T).
 
         Parameters
@@ -278,7 +281,7 @@ class Model:
             stored variable `n_walkers`, which itself defaults to 1.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
             For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
             trajectory is used.
         threads_per_block : tuple[int, int], optional
@@ -324,7 +327,8 @@ class Model:
         maskfunction: MaskFunctionType = synchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDArray:
-        """Computes the quasicoherence in response to perturbation of source node index, averaging
+        """
+        Computes the quasicoherence in response to perturbation of source node index, averaging
         trajectories from t=T-T_sample+1 to T.
 
         Parameters
@@ -345,7 +349,7 @@ class Model:
             average absolute difference between state vectors is used instead.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
             For coherence, if the maskfunction is state-dependent, then the unperturbed
             trajectory is used.
         threads_per_block : tuple[int, int], optional
@@ -392,7 +396,8 @@ class Model:
         maskfunction: MaskFunctionType = synchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDArray:
-        """Computes the quasicoherence in response to perturbation of single nodes, averaging
+        """
+        Computes the quasicoherence in response to perturbation of single nodes, averaging
         trajectories from t=T-T_sample+1 to T.
 
         Parameters
@@ -411,7 +416,7 @@ class Model:
             average absolute difference between state vectors is used instead.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
             For coherence, if the maskfunction is state-dependent, then the unperturbed
             trajectory is used.
         threads_per_block : tuple[int, int], optional
@@ -457,7 +462,8 @@ class Model:
         maskfunction: MaskFunctionType = synchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDArray:
-        """Computes the final hamming distance in response to perturbation of source node index,
+        """
+        Computes the final hamming distance in response to perturbation of source node index,
         averaging hamming distances from t=T-T_sample+1 to T.
 
         Parameters
@@ -474,7 +480,7 @@ class Model:
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
             if the maskfunction is state-dependent, then the unperturbed trajectory is used.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array,
@@ -517,7 +523,8 @@ class Model:
         maskfunction: MaskFunctionType = synchronous,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> cp.NDArray:
-        """Computes the final Hamming distance in response to perturbation of single nodes,
+        """
+        Computes the final Hamming distance in response to perturbation of single nodes,
         averaging Hamming distances from t=T-T_sample+1 to T.
 
         Parameters
@@ -532,7 +539,7 @@ class Model:
             Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
         maskfunction : MaskFunctionType, optional
             Function that returns a mask for selecting which node values to update.
-            By default, uses the synchronous update scheme. See update_schemes for examples.
+            By default, uses the synchronous update scheme. See `update_schemes` for examples.
             If the maskfunction is state-dependent, then the unperturbed trajectory is used.
         threads_per_block : tuple[int, int], optional
             How many threads should be in each block for each dimension of the N x W array,
@@ -571,7 +578,8 @@ class Model:
         n_walkers: int | None = None,
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> float:
-        """Estimates the Derrida coefficient.
+        """
+        Estimates the Derrida coefficient.
 
         Parameters
         ----------

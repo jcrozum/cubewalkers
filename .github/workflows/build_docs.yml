@@ -1,0 +1,16 @@
+name: "Pull Request Docs Check"
+on: 
+  push:
+    branches:
+    - documentation
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: ammaraskar/sphinx-action@master
+      with:
+        pre-build-command: "pip install sphinx-toolbox pydata-sphinx-theme sphinx-copybutton sphinx-autoapi"
+        build-command: "sphinx-build -M html source/ build/"
+        docs-folder: "docs/"

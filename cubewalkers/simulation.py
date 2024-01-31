@@ -23,7 +23,8 @@ def simulate_ensemble(
     threads_per_block: tuple[int, int] = (32, 32),
     set_update_prob: float = 0.5,
 ) -> cp.NDArray:
-    """Simulates a random ensemble of walkers on a Boolean network using the input kernel.
+    """
+    Simulates a random ensemble of walkers on a Boolean network using the input kernel.
 
     Parameters
     ----------
@@ -44,7 +45,7 @@ def simulate_ensemble(
         in which case the kernel must be a lookup-table-based kernel. If None (default),
         then the kernel must have the update rules internally encoded.
     initial_states : cp.NDArray | None, optional
-        N x W array of initial states. Must be a cupy ndarray of type cupy.bool_. If None
+        N x W array of initial states. Must be a CuPy ndarray of CuPy Boolean values. If None
         (default), initial states are randomly initialized.
     averages_only : bool, optional
         If True, stores only average node values at each timestep.
@@ -140,7 +141,8 @@ def simulate_perturbation(
     maskfunction: MaskFunctionType = synchronous,
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> tuple[cp.NDArray, cp.NDArray, cp.NDArray]:
-    """Computes the trajectories in response to a perturbation of the source node index,
+    """
+    Computes the trajectories in response to a perturbation of the source node index,
     and returns summed up trajectories and summed up differences (3 arrays of N*W)
 
     Parameters
@@ -238,7 +240,8 @@ def source_quasicoherence(
     T_sample: int = 1,
     fuzzy_coherence: bool = False,
 ) -> cp.NDArray:
-    """Computes the quasicoherence in response to perturbation of source node index,
+    """
+    Computes the quasicoherence in response to perturbation of source node index,
     averaging trajectories from t=T-T_sample+1 to T.
 
     Parameters
@@ -274,7 +277,8 @@ def source_quasicoherence(
 
 
 def source_final_hamming_distance(diff: cp.NDArray, T_sample: int = 1) -> cp.NDArray:
-    """Computes the final hamming distance in response to perturbation of source node index,
+    """
+    Computes the final hamming distance in response to perturbation of source node index,
     averaging hamming distances from t=T-T_sample+1 to T.
 
     Parameters
@@ -291,7 +295,9 @@ def source_final_hamming_distance(diff: cp.NDArray, T_sample: int = 1) -> cp.NDA
     """
 
     final_hamming_distance_array = diff / T_sample
-    final_hamming_distance: cp.NDArray = cp.mean(cp.sum(final_hamming_distance_array, axis=0))  # type: ignore
+    final_hamming_distance: cp.NDArray = cp.mean(  # type: ignore
+        cp.sum(final_hamming_distance_array, axis=0)  # type: ignore
+    )
 
     return final_hamming_distance
 
@@ -306,7 +312,8 @@ def dynamical_impact(
     maskfunction: MaskFunctionType = synchronous,
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> cp.NDArray:
-    """Computes the dynamical impact of the source node index on all others (including
+    """
+    Computes the dynamical impact of the source node index on all others (including
     itself, from time=0 to time=T).
 
     Parameters
@@ -397,7 +404,8 @@ def derrida_coefficient(
     lookup_tables: cp.NDArray | None = None,
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> float:
-    """Estimates the Derrida coefficient.
+    """
+    Estimates the Derrida coefficient.
 
     Parameters
     ----------

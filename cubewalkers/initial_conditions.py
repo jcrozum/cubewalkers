@@ -12,7 +12,8 @@ def initial_walker_states(
     n_walkers: int,
     comment_char: str = "#",
 ) -> cp.NDArray:
-    """Generates initial conditions for an ensemble of walkers.
+    """
+    Generates initial conditions for an ensemble of walkers.
 
     Parameters
     ----------

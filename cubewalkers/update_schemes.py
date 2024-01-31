@@ -30,7 +30,8 @@ void asynchronous(const int* x1, int* z, int N, int W) {
 
 
 def asynchronous(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.NDArray:
-    """Update mask that randomly selects a single node to be updated at each timestep.
+    """
+    Update mask that randomly selects a single node to be updated at each timestep.
 
     Parameters
     ----------
@@ -63,7 +64,8 @@ def asynchronous(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.NDA
 def asynchronous_PBN(
     t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any
 ) -> cp.NDArray:
-    """Update mask that randomly selects a single node to be updated at each timestep.
+    """
+    Update mask that randomly selects a single node to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
     Parameters
@@ -99,7 +101,8 @@ def asynchronous_PBN(
 def asynchronous_set(
     t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any
 ) -> cp.NDArray:
-    """Update mask that randomly selects a set of nodes to be updated at each timestep.
+    """
+    Update mask that randomly selects a set of nodes to be updated at each timestep.
 
     Parameters
     ----------
@@ -129,7 +132,8 @@ def asynchronous_set(
 def asynchronous_set_PBN(
     t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any
 ) -> cp.NDArray:
-    """Update mask that randomly selects a set of nodes to be updated at each timestep.
+    """
+    Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. Each value is independently generated for each node.
 
     Parameters
@@ -160,7 +164,8 @@ def asynchronous_set_PBN(
 def asynchronous_set_PBN_dependent(
     t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any
 ) -> cp.NDArray:
-    """Update mask that randomly selects a set of nodes to be updated at each timestep.
+    """
+    Update mask that randomly selects a set of nodes to be updated at each timestep.
     Passes random values for PBN support. All nodes use the same value,
     but each walker uses an independently generated value.
 
@@ -191,7 +196,8 @@ def asynchronous_set_PBN_dependent(
 
 
 def synchronous(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.NDArray:
-    """Update mask that updates all nodes at each timestep.
+    """
+    Update mask that updates all nodes at each timestep.
 
     Parameters
     ----------
@@ -213,7 +219,8 @@ def synchronous(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.NDAr
 
 
 def synchronous_PBN(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.NDArray:
-    """Update mask that updates all nodes at each timestep. Passes random values for PBN
+    """
+    Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. Each value is indepently generated for each node.
 
     Parameters
@@ -238,7 +245,8 @@ def synchronous_PBN(t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any) -> cp.
 def synchronous_PBN_dependent(
     t: int, n: int, w: int, a: cp.NDArray, **kwargs: Any
 ) -> cp.NDArray:
-    """Update mask that updates all nodes at each timestep. Passes random values for PBN
+    """
+    Update mask that updates all nodes at each timestep. Passes random values for PBN
     support. All nodes use the same value, but each walker uses an independently generated
     value.
 

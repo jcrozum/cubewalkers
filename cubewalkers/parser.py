@@ -12,14 +12,15 @@ if TYPE_CHECKING:
 
 
 def clean_rules(rules: str, comment_char: str = "#") -> str:
-    """Initial parsing of rules to standardize format.
+    """
+    Initial parsing of rules to standardize format.
 
     Parameters
     ----------
     rules : str
         Rule string to parse.
     comment_char : str, optional
-        Empty lines and lines beginning with this character are ignored, by default '#'.
+        Empty lines and lines beginning with this character are ignored, by default `#`.
 
     Returns
     -------
@@ -65,7 +66,8 @@ def clean_rules(rules: str, comment_char: str = "#") -> str:
 
 
 def adjust_rules_for_experiment(rules: str, experiment: Experiment | None) -> str:
-    """Helper function that adjusts rules to incorporate the experimental conditions
+    """
+    Helper function that adjusts rules to incorporate the experimental conditions
     specified in the experiment string.
 
     Parameters
@@ -98,7 +100,8 @@ def bnet2rawkernel(
     comment_char: str = "#",
     skip_clean: bool = False,
 ) -> tuple[RawKernelType, list[str], str]:
-    """Generates a CuPy RawKernel that encodes update rules and experimental conditions.
+    """
+    Generates a CuPy RawKernel that encodes update rules and experimental conditions.
 
     Parameters
     ----------
@@ -112,22 +115,14 @@ def bnet2rawkernel(
         case no experimental conditions are incorporated into the rules.
     comment_char : str, optional
         In rules, empty lines and lines beginning with this character are ignored, by default
-        '#'.
+        `#`.
     skip_clean : bool, optional
         Whether to skip the step of cleaning the rules, by default False.
 
     Returns
     -------
-    cp.RawKernel
-        A CuPy RawKernel that accepts arguments in the following fashion:
-        kernel(blocks_per_grid, threads_per_block, (
-            input_array_to_update,
-            update_scheme_mask,
-            output_array_after_update,
-            current_time_step,
-            number_of_nodes,
-            number_of_walkers))
-        and modifies the output_array_after_update in-place.
+    RawKernelType
+        A CuPy RawKernel that is called to compute time evolution.
     list[str]
         A list of strings that encode the variable names
     str
@@ -184,7 +179,8 @@ def bnet2rawkernel(
 def regulators2lutkernel(
     node_regulators: Iterable[Iterable[int]], kernel_name: str
 ) -> tuple[RawKernelType, str]:
-    """Constructs a CuPy RawKernel that simulates a network using lookup tables.
+    """
+    Constructs a CuPy RawKernel that simulates a network using lookup tables.
 
     Parameters
     ----------
@@ -196,18 +192,8 @@ def regulators2lutkernel(
 
     Returns
     -------
-    cp.RawKernel
-        A CuPy RawKernel that accepts arguments in the following fashion:
-        kernel(blocks_per_grid, threads_per_block, (
-            input_array_to_update,
-            update_scheme_mask,
-            output_array_after_update,
-            lookup_table,
-            current_time_step,
-            number_of_nodes,
-            number_of_walkers))
-        and modifies the output_array_after_update in-place using the provided lookup
-        table to compute state transitions.
+    RawKernelType
+        A CuPy RawKernel that is called to compute time evolution.
     str
         A string containing the CUDA-C++ body of the kernel
     """
@@ -250,7 +236,8 @@ def regulators2lutkernel(
 
 
 def name_adjustment(name: str) -> str:
-    """Adjust the node name to fit proper formatting.
+    """
+    Adjust the node name to fit proper formatting.
 
     Parameters
     ----------
