@@ -5,7 +5,7 @@ import cubewalkers as cw
 import boolean2
 import cana.boolean_network as bn
 
-rules = '''ABA*=ABA
+rules = """ABA*=ABA
 ABI1*=not PA and not RCARs and not ROS and pHc
 ABI2*=not RCARs and not ROS and not PA
 Actin_Reorganization*=not AtRAC1
@@ -51,7 +51,7 @@ TCTP*=Ca2c
 V_ATPase*=Ca2c
 Vacuolar_Acidification*=V_PPase or V_ATPase
 cADPR*=cGMP and ROS and NO
-pHc*=((OST1 and not ABI2 and not ABI1) or Ca2c) and Vacuolar_Acidification'''
+pHc*=((OST1 and not ABI2 and not ABI1) or Ca2c) and Vacuolar_Acidification"""
 
 T = 1000
 W = 500
@@ -59,7 +59,7 @@ W = 500
 print("start cana")
 ti = time.perf_counter()
 model_cana = bn.BooleanNetwork.from_string_boolean(rules)
-initial = ''.join(random.choices(['0', '1'], k=model_cana.Nnodes))
+initial = "".join(random.choices(["0", "1"], k=model_cana.Nnodes))
 for _ in range(W):
     model_cana.trajectory(initial, length=T)
 print(f"done cana: {time.perf_counter()-ti}s")
@@ -76,7 +76,7 @@ T = 100
 W = 50
 print("start bn")
 ti = time.perf_counter()
-model_bn2 = boolean2.Model(text=rules, mode='sync')
+model_bn2 = boolean2.Model(text=rules, mode="sync")
 model_bn2.initialize(missing=lambda x: random.choice([0, 1]))
 for _ in range(W):
     model_bn2.iterate(steps=T)  # type: ignore
