@@ -1,3 +1,5 @@
+"""This module contains the Experiment class for storing and manipulating experimental conditions."""
+
 import re
 from io import StringIO
 from typing import Iterable
@@ -15,13 +17,10 @@ class Experiment:
         Parameters
         ----------
         override_string : str
-            Experimental conditions to incorporate. Each line should be of the form
+            Experimental conditions to incorporate. Each line should be in one of the following forms:
 
-            NodeName,StartTime,EndTime,RuleToSubstitute
-
-            - or -
-
-            ParentName-->NodeName,StartTime,EndTime,RuleToSubstitute
+            - NodeName,StartTime,EndTime,RuleToSubstitute
+            - ParentName-->NodeName,StartTime,EndTime,RuleToSubstitute
 
             If NodeName ends in a '*', then update is not forced (i.e., the update
             rule becomes fixed to RuleToSubstitute). Otherwise, update is forced,

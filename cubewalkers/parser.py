@@ -1,3 +1,5 @@
+"""This module contains methods for constructing CUDA kernels from Boolean networks."""
+
 from __future__ import annotations
 
 import re

@@ -1,3 +1,5 @@
+"""This Module contains custom typing utilities for the `cubewalkers` package."""
+
 from typing import TYPE_CHECKING, Any, Protocol
 
 import cupy as cp  # type: ignore

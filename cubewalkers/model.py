@@ -1,3 +1,5 @@
+"""This module contains the Model class, which is the primary point of access to `cubewalkers`."""
+
 from __future__ import annotations
 
 import random
@@ -21,8 +23,8 @@ if TYPE_CHECKING:
 
 class Model:
     """
-    Stores a Boolean network and experimental conditions, as well as generates and stores
-    the results of simulations on that network.
+    Stores a Boolean network and experimental conditions, as well as generates
+    and stores the results of simulations on that network.
     """
 
     _automatic_model_name_length = 16
@@ -45,40 +47,40 @@ class Model:
         Parameters
         ----------
         rules : str, optional
-            Rules to input. If skip_clean is True (not default), then these are assumed to
-            have been cleaned. If not provided, then lookup_tables and node_regulatorys must
-            both be provided instead.
+            Rules to input. If skip_clean is `True` (not default), then these
+            are assumed to have been cleaned. If not provided, then
+            `lookup_tables` and `node_regulators` must both be provided instead.
         lookup_tables : cp.NDArray, optional
             A merged lookup table that contains the output column of each rule's
-            lookup table (padded by False values). If not provided, rules must be provided
-            instead.
+            lookup table (padded by `False` values). If not provided, rules must
+            be provided instead.
         node_regulators : Iterable[Iterable[int]]
-            Iterable i should contain the indicies of the nodes that regulate node i,
-            optionally padded by negative values. If not provided, rules must be provided
-            instead.
+            Iterable i should contain the indicies of the nodes that regulate
+            node i, optionally padded by negative values. If not provided, rules
+            must be provided instead.
         lookup_table_varnames: Iterable[str], optional
             Iterable of variable names to associate with lookup table entries.
-            If None (default) dummy variable names of the form 'x0', 'x1', etc., will be
-            constructed.
+            If `None` (default) dummy variable names of the form 'x0', 'x1',
+            etc., will be constructed.
         initial_biases : str
-            Each line should be of the form
-            NodeName,bias
-            where NodeName is the name of the node, and bias is the probability that the node
-            will be initialized to 1 (instead of 0). Nodes whose names are not listed are given
-            a bias of 0.5 by default.
+            Each line should be of the form - NodeName,bias where NodeName is
+            the name of the node, and bias is the probability that the node will
+            be initialized to 1 (instead of 0). Nodes whose names are not listed
+            are given a bias of 0.5 by default.
         model_name : str
-            A name for the kernel
+            A name for the kernel.
         experiment : Experiment | None, optional
-            An Experiment object specifying experimental conditions, by default None, in which
-            case no experimental conditions are incorporated into the rules. Currently not
-            implemented for lookup-table-based Boolean networks.
+            An :class:`Experiment<cubewalkers.experiment.Experiment>` object
+            specifying experimental conditions, by default None, in which case
+            no experimental conditions are incorporated into the rules.
+            Currently not implemented for lookup-table-based Boolean networks.
         comment_char : str, optional
-            In rules, empty lines and lines beginning with this character are ignored, by
-            default '#'.
+            In rules, empty lines and lines beginning with this character are
+            ignored, by default `'#'`.
         n_time_steps: int, optional
-            Number of timesteps to simulate, by default 1
+            Number of timesteps to simulate, by default `1`.
         n_walkers: int, optional
-            Number of ensemble walkers to simulate, by default 1
+            Number of ensemble walkers to simulate, by default `1`.
         """
         self.name = ""
         if model_name is None:
@@ -579,7 +581,11 @@ class Model:
         threads_per_block: tuple[int, int] = (32, 32),
     ) -> float:
         """
-        Estimates the Derrida coefficient.
+        Estimates the (synchronous) Derrida coefficient.
+
+        The Derrida coefficent is computed as the mean Hamming distance after one
+        synchronous update between trajectories with initial Hamming distance of
+        one. For analogs using other update schemes, use :meth:`dynamical_impact`.
 
         Parameters
         ----------

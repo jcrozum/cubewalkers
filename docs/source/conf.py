@@ -67,6 +67,7 @@ autoapi_python_class_content = "both"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "cupy": ("https://docs.cupy.dev/en/stable/", None),
 }
 
 autodoc_type_aliases = {
@@ -98,6 +99,6 @@ def linkcode_resolve(domain, info):
             info["module"] = "cubewalkers.experiment"
         if info["fullname"].startswith("Model"):
             info["module"] = "cubewalkers.model"
-    print(info)
+
     filename = info["module"].replace(".", "/")
     return f"https://github.com/jcrozum/cubewalkers/blob/main/{filename}.py"

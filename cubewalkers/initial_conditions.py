@@ -1,3 +1,5 @@
+"""This module contains utilities for generating initial conditions for Boolean networks."""
+
 from __future__ import annotations
 
 from io import StringIO

@@ -1,3 +1,5 @@
+"""This module contains the simulation functions used by the :class:`Model<cubewalkers.model.Model>` class. """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -22,14 +24,15 @@ def simulate_ensemble(
     maskfunction: MaskFunctionType = synchronous,
     threads_per_block: tuple[int, int] = (32, 32),
     set_update_prob: float = 0.5,
-) -> cp.NDArray:
+) -> cp.NDarray:
     """
-    Simulates a random ensemble of walkers on a Boolean network using the input kernel.
+    Simulates a random ensemble of walkers on a Boolean network using the input
+    kernel.
 
     Parameters
     ----------
     kernel : RawKernelType
-        CuPy RawKernel that provides the update functions (see parser module).
+        CuPy RawKernel that provides the update functions.
     N : int
         Number of nodes in the network.
     T : int
@@ -37,32 +40,34 @@ def simulate_ensemble(
     W : int
         Number of ensemble walkers to simulate.
     T_window : int, optional
-        Number of time points to keep (from t=T-T_window+1 to t=T). If None (default),
-        keep all time points.
+        Number of time points to keep (from t=T-T_window+1 to t=T). If `None`
+        (default), keep all time points.
     lookup_tables : cp.NDArray, optional
         A merged lookup table that contains the output column of each rule's
-        lookup table (padded by False values). If provided, it is passed to the kernel,
-        in which case the kernel must be a lookup-table-based kernel. If None (default),
-        then the kernel must have the update rules internally encoded.
+        lookup table (padded by False values). If provided, it is passed to the
+        kernel, in which case the kernel must be a lookup-table-based kernel. If
+        None (default), then the kernel must have the update rules internally
+        encoded.
     initial_states : cp.NDArray | None, optional
-        N x W array of initial states. Must be a CuPy ndarray of CuPy Boolean values. If None
-        (default), initial states are randomly initialized.
+        N x W array of initial states. Must be a CuPy ndarray of CuPy Boolean
+        values. If `None` (default), initial states are randomly initialized.
     averages_only : bool, optional
-        If True, stores only average node values at each timestep.
-        Otherwise, stores node values for each walker. By default False.
+        If `True`, stores only average node values at each timestep. Otherwise,
+        stores node values for each walker. By default `False`.
     maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
-        By default, uses the synchronous update scheme. See update_schemes for examples.
+        By default, uses the synchronous update scheme. See
+        :mod:`cubewalkers.update_schemes` for examples.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array,
-        by default (32, 32). See CUDA documentation for details.
+        How many threads should be in each block for each dimension of the N x W
+        array, by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------
     cp.NDArray
-        If averages_only is False (default), a T x N x W array of node values at each timestep
-        for each node and walker. If averages_only is True, a T x N array of average node
-        values.
+        If `averages_only` is `False` (default), a T x N x W array of node
+        values at each timestep for each node and walker. If `averages_only` is
+        `True`, a T x N array of average node values.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1] + 1, N // threads_per_block[0] + 1)
@@ -142,13 +147,17 @@ def simulate_perturbation(
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> tuple[cp.NDArray, cp.NDArray, cp.NDArray]:
     """
-    Computes the trajectories in response to a perturbation of the source node index,
-    and returns summed up trajectories and summed up differences (3 arrays of N*W)
+    Simulate the effect of a perturbation to a single node.
+
+    Computes the trajectories in response to a perturbation of the source node
+    index, and returns summed up trajectories and summed up differences (3
+    arrays of N x W). From these arrays, it is possible to compute various
+    summary statistics.
 
     Parameters
     ----------
     kernel : RawKernelType
-        CuPy RawKernel that provides the update functions (see parser module).
+        CuPy RawKernel that provides the update functions.
     source : int | list[int]
         Index or indices of node(s) to perturb.
     N : int
@@ -158,28 +167,34 @@ def simulate_perturbation(
     W : int
         Number of ensemble walkers to simulate.
     T_sample : int, optional
-        Number of time points to use for summing (t=T-T_sample+1 to t=T), by default, 1.
+        Number of time points to use for summing (t=T-T_sample+1 to t=T), by
+        default, 1.
     lookup_tables : cp.NDArray, optional
         A merged lookup table that contains the output column of each rule's
-        lookup table (padded by False values). If provided, it is passed to the kernel,
-        in which case the kernel must be a lookup-table-based kernel. If None (default),
-        then the kernel must have the update rules internally encoded.
+        lookup table (padded by False values). If provided, it is passed to the
+        kernel, in which case the kernel must be a lookup-table-based kernel. If
+        `None` (default), then the kernel must have the update rules internally
+        encoded.
     maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
-        By default, uses the synchronous update scheme. See update_schemes for examples.
-        If the maskfunction is state-dependent, then the unperturbed trajectory is used.
+        By default, uses the synchronous update scheme. See
+        :mod:`cubewalkers.update_schemes` for examples. If the maskfunction is
+        state-dependent, then the unperturbed trajectory is used.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array,
-        by default (32, 32). See CUDA documentation for details.
+        How many threads should be in each block for each dimension of the N x W
+        array, by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------
     trajU : cp.NDArray
-        The trajectory without perturbation summed up from t=T-T_sample+1 to t=T.
+        The trajectory without perturbation summed from t=T-T_sample+1 to
+        t=T. Dimensions are N x W.
     trajP : cp.NDArray
-        The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
+        The trajectories in response to the source node perturbation summed
+        from t=T-T_sample+1 to t=T. Dimensions are N x W.
     diff : cp.NDArray
-        The differences in trajU and trajP summed up from t=T-T_sample+1 to t=T.
+        The differences in trajU and trajP summed from t=T-T_sample+1 to t=T.
+        Dimensions are N x W.
     """
     # compute blocks per grid based on number of walkers & variables and threads_per_block
     blocks_per_grid = (W // threads_per_block[1] + 1, N // threads_per_block[0] + 1)
@@ -241,24 +256,38 @@ def source_quasicoherence(
     fuzzy_coherence: bool = False,
 ) -> cp.NDArray:
     """
-    Computes the quasicoherence in response to perturbation of source node index,
-    averaging trajectories from t=T-T_sample+1 to T.
+    Estimate the quasicoherence from a set of unperturbed and perturbed
+    trajectories.
+
+    Quasicoherence quantifies the the probability that a perturbation to a
+    trajectory results in the same long-term behavior. Fuzzy quasicoherence is
+    similar, but similarity of long-term behavior is measured on a sliding scale
+    based on average node values, rather than all-or-nothing. Further details at
+    PRX Life 1, 023009: https://doi.org/10.1103/PRXLife.1.023009.
 
     Parameters
     ----------
-    trajU, trajP : cp.NDArray
-        The trajectories in response to the source node perturbation summed up from t=T-T_sample+1 to t=T.
+    trajU : cp.NDArray
+         The N x W array of unperturbed trajectories summed up from
+         t=T-T_sample+1 to t=T. See See :func:`simulate_perturbation`.
+    trajP : cp.NDArray
+        The N x W array of trajectories in response to the source node
+        perturbation, summed up from t=T-T_sample+1 to t=T. See
+        :func:`simulate_perturbation`.
     T_sample : int, optional
-        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by
+        default, 1.
     fuzzy_coherence : bool, optional
-        If False (default), trajectroies are marked as either in agreement (1) or not in
-        agreement (0) depending on whether fixed nodes are in agreement. If True, the
-        average absolute difference between state vectors is used instead.
+        If `False` (default), trajectroies are marked as either in agreement (1)
+        or not in agreement (0) depending on whether fixed nodes are in
+        agreement. If `True`, the average absolute difference between state
+        vectors is used instead.
 
     Returns
     -------
     cp.NDArray
-        The estimated value of the quasicoherence response to the source node perturbation.
+        The estimated value of the quasicoherence response to the source node
+        perturbation.
     """
 
     if fuzzy_coherence:
@@ -278,20 +307,24 @@ def source_quasicoherence(
 
 def source_final_hamming_distance(diff: cp.NDArray, T_sample: int = 1) -> cp.NDArray:
     """
-    Computes the final hamming distance in response to perturbation of source node index,
-    averaging hamming distances from t=T-T_sample+1 to T.
+    Estimate the average asymptotic Hamming distance between a set of
+    unperturbed and perturbed trajectories.
 
     Parameters
     ----------
     diff : cp.NDArray
-        The trajectories in response to the source node perturbation.
+        The N x W array of trajectory differences calculated during simulating
+        the response to the source node perturbation. See
+        :func:`simulate_perturbation`.
     T_sample : int, optional
-        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by default, 1.
+        Number of time points to use for averaging (t=T-T_sample+1 to t=T), by
+        default, 1.
 
     Returns
     -------
     cp.NDArray
-        The estimated value of the final hamming distance response to the source node perturbation.
+        The estimated value of the final hamming distance response to the source
+        node perturbation.
     """
 
     final_hamming_distance_array = diff / T_sample
@@ -313,13 +346,16 @@ def dynamical_impact(
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> cp.NDArray:
     """
-    Computes the dynamical impact of the source node index on all others (including
-    itself, from time=0 to time=T).
+    Estimates the dynamical impact of a source node.
+
+    Dynamical impact of a source node on a target node at time t is the
+    probability that initial states that differ in only the source node will
+    differ in the target node at time t.
 
     Parameters
     ----------
     kernel : RawKernelType
-        CuPy RawKernel that provides the update functions (see parser module).
+        CuPy RawKernel that provides the update functions.
     source : int | list[int]
         Index or indices of node(s) to perturb for dynamical impact calculation.
     N : int
@@ -330,17 +366,18 @@ def dynamical_impact(
         Number of ensemble walkers to simulate.
     lookup_tables : cp.NDArray, optional
         A merged lookup table that contains the output column of each rule's
-        lookup table (padded by False values). If provided, it is passed to the kernel,
-        in which case the kernel must be a lookup-table-based kernel. If None (default),
-        then the kernel must have the update rules internally encoded.
+        lookup table (padded by `False` values). If provided, it is passed to
+        the kernel, in which case the kernel must be a lookup-table-based
+        kernel. If `None` (default), then the kernel must have the update rules
+        internally encoded.
     maskfunction : MaskFunctionType, optional
         Function that returns a mask for selecting which node values to update.
-        By default, uses the synchronous update scheme. See update_schemes for examples.
-        For dynamical impact, if the maskfunction is state-dependent, then the unperturbed
-        trajectory is used.
+        By default, uses the synchronous update scheme. See
+        :mod:`cupewalkers.update_schemes` for examples. If the maskfunction is
+        state-dependent, then the unperturbed trajectory is used.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array,
-        by default (32, 32). See CUDA documentation for details.
+        How many threads should be in each block for each dimension of the N x W
+        array, by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------
@@ -405,24 +442,29 @@ def derrida_coefficient(
     threads_per_block: tuple[int, int] = (32, 32),
 ) -> float:
     """
-    Estimates the Derrida coefficient.
+    Estimates the (synchronous) Derrida coefficient.
+
+    The Derrida coefficent is computed as the mean Hamming distance after one
+    synchronous update between trajectories with initial Hamming distance of
+    one. For analogs using other update schemes, use :func:`dynamical_impact`.
 
     Parameters
     ----------
     kernel : RawKernelType
-        CuPy RawKernel that provides the update functions (see parser module).
+        CuPy RawKernel that provides the update functions.
     N : int
         Number of nodes in the network.
     W : int
         Number of ensemble walkers to simulate.
     lookup_tables : cp.NDArray, optional
         A merged lookup table that contains the output column of each rule's
-        lookup table (padded by False values). If provided, it is passed to the kernel,
-        in which case the kernel must be a lookup-table-based kernel. If None (default),
-        then the kernel must have the update rules internally encoded.
+        lookup table (padded by `False` values). If provided, it is passed to
+        the kernel, in which case the kernel must be a lookup-table-based
+        kernel. If `None` (default), then the kernel must have the update rules
+        internally encoded.
     threads_per_block : tuple[int, int], optional
-        How many threads should be in each block for each dimension of the N x W array,
-        by default (32, 32). See CUDA documentation for details.
+        How many threads should be in each block for each dimension of the N x W
+        array, by default (32, 32). See CUDA documentation for details.
 
     Returns
     -------

@@ -1,3 +1,5 @@
+"""This Module contains utilities for converting between Boolean network formats."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Iterable
@@ -16,6 +18,8 @@ def cana2cupyLUT(
 ) -> tuple[cp.NDArray, cp.NDArray]:
     """
     Extract lookup tables and input lists from a CANA network into a CuPy-compatible form.
+
+    For more information about CANA, see: https://github.com/rionbr/CANA.
 
     Parameters
     ----------
@@ -54,10 +58,12 @@ def node_rule_from_cana(
     """
     Transforms the prime implicants LUT of a Boolean Node from CANA to algebraic format.
 
+    For more information about CANA, see: https://github.com/rionbr/CANA.
+
     Parameters
     ----------
     node : BooleanNode
-        CANA Boolean node. See: https://github.com/rionbr/CANA
+        CANA Boolean node.
     int2name : dict[int, str], optional
         Dictionary with the node ids as keys and node name as values, by default None
 
@@ -102,6 +108,8 @@ def network_rules_from_cana(BN: BooleanNetwork) -> str:
     """
     Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
 
+    For more information about CANA, see: https://github.com/rionbr/CANA.
+
     Parameters
     ----------
     BN : BooleanNetwork
@@ -126,7 +134,7 @@ def network_rules_from_cana(BN: BooleanNetwork) -> str:
 
 def cpp2bnet(cpp_rules: str) -> str:
     """
-    Converts the rules in C++ format to bnet format
+    Converts the rules in C++ format to bnet format.
 
     Parameters
     ----------
