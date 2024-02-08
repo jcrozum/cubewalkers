@@ -21,8 +21,10 @@ def initial_walker_states(
     ----------
     initial_biases : str
         Each line should be of the form
-        NodeName,bias
-        where NodeName is the name of the node, and bias is the probability that the node
+
+        * NodeName,Bias
+
+        where NodeName is the name of the node, and Bias is the probability that the node
         will be initialized to 1 (instead of 0). Nodes whose names are not listed are given
         a bias of 0.5 by default.
     vardict : dict[str,int]

@@ -1,4 +1,4 @@
-"""This Module contains utilities for converting between Boolean network formats."""
+"""This module contains utilities for converting between Boolean network formats."""
 
 from __future__ import annotations
 

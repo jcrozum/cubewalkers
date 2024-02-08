@@ -9,7 +9,8 @@ if TYPE_CHECKING:
 
     from cubewalkers.custom_typing import RawKernelType
 
-# Note: we are ignoring a lot of types in here because this part needs to be really fast and we can't hold mypy's hand here
+# Note: we are ignoring a lot of types in here because the type checker doesn't
+# play nice with cupy
 
 asynchronous_kernel: RawKernelType = cp.RawKernel(  # type: ignore
     r"""
