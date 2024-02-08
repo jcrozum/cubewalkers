@@ -1,3 +1,7 @@
+"""This module contains the
+:class:`Experiment<cubewalkers.experiment.Experiment>` class for storing and
+manipulating experimental conditions."""
+
 import re
 from io import StringIO
 from typing import Iterable
@@ -6,21 +10,19 @@ from cubewalkers import parser
 
 
 class Experiment:
-    """Stores information from user-specified experimental inputs."""
+    """
+    Stores information from user-specified experimental inputs.
+    """
 
     def __init__(self, override_string: str, comment_char: str = "#") -> None:
-        """_summary_
-
+        """
         Parameters
         ----------
         override_string : str
-            Experimental conditions to incorporate. Each line should be of the form
+            Experimental conditions to incorporate. Each line should be in one of the following forms:
 
-            NodeName,StartTime,EndTime,RuleToSubstitute
-
-            - or -
-
-            ParentName-->NodeName,StartTime,EndTime,RuleToSubstitute
+            - NodeName,StartTime,EndTime,RuleToSubstitute
+            - ParentName-->NodeName,StartTime,EndTime,RuleToSubstitute
 
             If NodeName ends in a '*', then update is not forced (i.e., the update
             rule becomes fixed to RuleToSubstitute). Otherwise, update is forced,
@@ -92,7 +94,8 @@ class Experiment:
                     self.force_update_time_strings[varname] += "false"
 
     def new_rule(self, old_rule: str) -> str:
-        """Modifies an input rule to incorporate the time-dependent experimental conditions
+        """
+        Modifies an input rule to incorporate the time-dependent experimental conditions
         stored internally.
 
         Parameters
@@ -120,7 +123,8 @@ class Experiment:
         return varname + ",\t" + new_function + "\n"
 
     def time_clamp_string(self, varnames: Iterable[str]) -> str:
-        """Generates and returns a string that determines when the update mask should
+        """
+        Generates and returns a string that determines when the update mask should
         be ignored because of the experimental conditions.
 
         Parameters

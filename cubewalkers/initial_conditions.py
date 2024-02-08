@@ -1,3 +1,5 @@
+"""This module contains utilities for generating initial conditions for Boolean networks."""
+
 from __future__ import annotations
 
 from io import StringIO
@@ -12,14 +14,17 @@ def initial_walker_states(
     n_walkers: int,
     comment_char: str = "#",
 ) -> cp.NDArray:
-    """Generates initial conditions for an ensemble of walkers.
+    """
+    Generates initial conditions for an ensemble of walkers.
 
     Parameters
     ----------
     initial_biases : str
         Each line should be of the form
-        NodeName,bias
-        where NodeName is the name of the node, and bias is the probability that the node
+
+        * NodeName,Bias
+
+        where NodeName is the name of the node, and Bias is the probability that the node
         will be initialized to 1 (instead of 0). Nodes whose names are not listed are given
         a bias of 0.5 by default.
     vardict : dict[str,int]
