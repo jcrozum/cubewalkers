@@ -16,6 +16,8 @@ pip install git+https://github.com/jcrozum/cubewalkers
 ```
 Note that this `pip` command ***WILL NOT*** install the `CuPy` and `CUDA Toolkit` dependencies automatically. These are hardware-specific and must be installed manually.
 
+# documentation
+See the cubewalkers documentation at [https://jcrozum.github.io/cubewalkers/](https://jcrozum.github.io/cubewalkers/) for a complete reference of available functions.
 
 # basic usage
 In-depth guides to using `cubewalkers` are available in the [Examples and Tutorials](https://github.com/jcrozum/cubewalkers/tree/main/Examples%20and%20Tutorials) directory. In addition, [this repository](https://github.com/kyuhyongpark/cubewalkers-analysis) showcases a real-world application of `cubewalkers`.
