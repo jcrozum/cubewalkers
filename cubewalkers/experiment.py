@@ -1,4 +1,6 @@
-"""This module contains the :class:`Experiment<cubewalkers.experiment.Experiment>` class for storing and manipulating experimental conditions."""
+"""This module contains the
+:class:`Experiment<cubewalkers.experiment.Experiment>` class for storing and
+manipulating experimental conditions."""
 
 import re
 from io import StringIO
