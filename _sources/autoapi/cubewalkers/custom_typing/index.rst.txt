@@ -1,0 +1,97 @@
+:py:mod:`cubewalkers.custom_typing`
+===================================
+
+.. py:module:: cubewalkers.custom_typing
+
+.. autoapi-nested-parse::
+
+   This Module contains custom typing utilities for the `cubewalkers` package.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.custom_typing.RawKernelType
+   cubewalkers.custom_typing.MaskFunctionType
+
+
+
+
+.. py:class:: RawKernelType
+
+
+   A dummy class for typing purposes.
+
+   It represents a Python-callable CUDA
+   kernel, such as can be generated using tools in the `parser` module.
+
+   .. py:method:: __call__(grid: tuple[int, Ellipsis], block: tuple[int, Ellipsis], args: tuple[Any, Ellipsis], **kwargs: Any)
+
+      _summary_
+
+      :param grid: The number of blocks in each grid dimension.
+      :type grid: tuple[int, ...]
+      :param block: The number of threads in each block dimension.
+      :type block: tuple[int, ...]
+      :param args: An array of arguments to be passed to the kernel. Used in one of
+                   two ways, in the order presented here.
+      :type args: tuple[Any, ...]
+      :param input_array_to_update: The N x W array of nodes values to be updated.
+      :type input_array_to_update: cp.NDArray
+      :param update_scheme_mask: The N x W array of update mask values, whose entries reflect
+                                 probability of updating the corresponding node.
+      :type update_scheme_mask: cp.NDArray
+      :param output_array_after_update: The N x W array of nodes values after update. This will be
+                                        modified in-place.
+      :type output_array_after_update: cp.NDArray
+      :param lookup_table: A  lookup table that contains the output column of each rule's
+                           update function. If provided, it is passed to the kernel, in
+                           which case the kernel must be a lookup-table-based kernel. If
+                           not provided, then the kernel must have the update rules
+                           internally encoded.
+      :type lookup_table: cp.NDArray, optional
+      :param current_time_step: The current time step of the simulation. Used for time-dependent kernels.
+      :type current_time_step: int
+      :param number_of_nodes: The number of nodes in the network, N.
+      :type number_of_nodes: int
+      :param number_of_walkers: The number of walkers in the simulation, W.
+      :type number_of_walkers: int
+
+
+
+.. py:class:: MaskFunctionType
+
+
+   Bases: :py:obj:`Protocol`
+
+   A dummy class for typing purposes.
+
+   It represents a function that
+   generates the update mask arrays used in the `update_schemes` module.
+
+   .. py:method:: __call__(t: int, n: int, w: int, a: cupy.typing.NDArray, **kwargs: Any) -> cupy.NDArray
+
+      Called to generate the update mask array. Parameter may or may
+      not be used, depending on the scheme.
+
+      :param t: Current timestep value
+      :type t: int
+      :param n: Number of nodes
+      :type n: int
+      :param w: Number of ensemble walkers
+      :type w: int
+      :param a: Current array of trajectories
+      :type a: cp.NDArray
+
+      :returns: The N x W array of update mask values, whose entries reflect
+                probability of updating the corresponding node.
+      :rtype: cp.NDArray
+
+
+

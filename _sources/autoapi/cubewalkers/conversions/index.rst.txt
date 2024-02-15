@@ -1,0 +1,81 @@
+:py:mod:`cubewalkers.conversions`
+=================================
+
+.. py:module:: cubewalkers.conversions
+
+.. autoapi-nested-parse::
+
+   This module contains utilities for converting between Boolean network formats.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.conversions.cana2cupyLUT
+   cubewalkers.conversions.node_rule_from_cana
+   cubewalkers.conversions.network_rules_from_cana
+   cubewalkers.conversions.cpp2bnet
+
+
+
+.. py:function:: cana2cupyLUT(net: cana.boolean_network.BooleanNetwork) -> tuple[cupy.NDArray, cupy.NDArray]
+
+   Extract lookup tables and input lists from a CANA network into a CuPy-compatible form.
+
+   For more information about CANA, see: https://github.com/rionbr/CANA.
+
+   :param net: CANA network to import.
+   :type net: cana.BooleanNetwork
+
+   :returns: Returns a merged lookup table that contains the output column of each rule's
+             lookup table (padded by False values). Also returns and inputs table, which
+             contains the inputs for each node (padded by -1).
+   :rtype: tuple[NDArray, NDArray]
+
+
+.. py:function:: node_rule_from_cana(node: cana.boolean_node.BooleanNode, int2name: dict[int, str] | None = None) -> str
+
+   Transforms the prime implicants LUT of a Boolean Node from CANA to algebraic format.
+
+   For more information about CANA, see: https://github.com/rionbr/CANA.
+
+   :param node: CANA Boolean node.
+   :type node: BooleanNode
+   :param int2name: Dictionary with the node ids as keys and node name as values, by default None
+   :type int2name: dict[int, str], optional
+
+   :returns: Node rule in algebraic format.
+   :rtype: str
+
+
+.. py:function:: network_rules_from_cana(BN: cana.boolean_network.BooleanNetwork) -> str
+
+   Transforms the prime implicants LUT of a Boolean Network from CANA to algebraic format.
+
+   For more information about CANA, see: https://github.com/rionbr/CANA.
+
+   :param BN: CANA Boolean network. See: https://github.com/rionbr/CANA
+   :type BN: BooleanNetwork
+
+   :returns: Network rules in algebraic format.
+   :rtype: str
+
+
+.. py:function:: cpp2bnet(cpp_rules: str) -> str
+
+   Converts the rules in C++ format to bnet format.
+
+   :param cpp_rules: rules in the C++ form.
+   :type cpp_rules: str
+
+   :returns: rules in the bnet form.
+   :rtype: str
+
+

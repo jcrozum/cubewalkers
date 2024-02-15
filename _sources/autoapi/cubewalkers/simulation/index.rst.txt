@@ -1,0 +1,235 @@
+:py:mod:`cubewalkers.simulation`
+================================
+
+.. py:module:: cubewalkers.simulation
+
+.. autoapi-nested-parse::
+
+   This module contains the simulation functions used by the :class:`Model<cubewalkers.model.Model>` class.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.simulation.simulate_ensemble
+   cubewalkers.simulation.simulate_perturbation
+   cubewalkers.simulation.source_quasicoherence
+   cubewalkers.simulation.source_final_hamming_distance
+   cubewalkers.simulation.dynamical_impact
+   cubewalkers.simulation.derrida_coefficient
+
+
+
+.. py:function:: simulate_ensemble(kernel: cubewalkers.custom_typing.RawKernelType, N: int, T: int, W: int, T_window: int | None = None, lookup_tables: cupy.NDArray | None = None, averages_only: bool = False, initial_states: cupy.NDArray | None = None, maskfunction: cubewalkers.custom_typing.MaskFunctionType = synchronous, threads_per_block: tuple[int, int] = (32, 32), set_update_prob: float = 0.5) -> cupy.NDarray
+
+   Simulates a random ensemble of walkers on a Boolean network using the input
+   kernel.
+
+   :param kernel: CuPy RawKernel that provides the update functions.
+   :type kernel: RawKernelType
+   :param N: Number of nodes in the network.
+   :type N: int
+   :param T: Number of timesteps to simulate.
+   :type T: int
+   :param W: Number of ensemble walkers to simulate.
+   :type W: int
+   :param T_window: Number of time points to keep (from t=T-T_window+1 to t=T). If `None`
+                    (default), keep all time points.
+   :type T_window: int, optional
+   :param lookup_tables: A merged lookup table that contains the output column of each rule's
+                         lookup table (padded by `False` values). If provided, it is passed to
+                         the kernel, in which case the kernel must be a lookup-table-based
+                         kernel. If None (default), then the kernel must have the update rules
+                         internally encoded.
+   :type lookup_tables: cp.NDArray, optional
+   :param averages_only: If `True`, stores only average node values at each timestep. Otherwise,
+                         stores node values for each walker. By default `False`.
+   :type averages_only: bool, optional
+   :param initial_states: N x W array of initial states. Must be a CuPy ndarray of CuPy Boolean
+                          values. If `None` (default), initial states are randomly initialized.
+   :type initial_states: cp.NDArray | None, optional
+   :param maskfunction: Function that returns a mask for selecting which node values to update.
+                        By default, uses the synchronous update scheme. See
+                        :mod:`cubewalkers.update_schemes` for examples.
+   :type maskfunction: MaskFunctionType, optional
+   :param threads_per_block: How many threads should be in each block for each dimension of the N x W
+                             array, by default `(32, 32)`. See CUDA documentation for details.
+   :type threads_per_block: tuple[int, int], optional
+   :param set_update_prob: Probability of a node being updated at each time step when using set
+                           update schemes. By default, `0.5`. If a set update scheme is not used,
+                           then this parameter is ignored.
+   :type set_update_prob: float, optional
+
+   :returns: If `averages_only` is `False` (default), a T x N x W array of node
+             values at each timestep for each node and walker. If `averages_only` is
+             `True`, a T x N array of average node values.
+   :rtype: cp.NDArray
+
+
+.. py:function:: simulate_perturbation(kernel: cubewalkers.custom_typing.RawKernelType, source: int | list[int], N: int, T: int, W: int, T_sample: int = 1, lookup_tables: cupy.NDArray | None = None, maskfunction: cubewalkers.custom_typing.MaskFunctionType = synchronous, threads_per_block: tuple[int, int] = (32, 32)) -> tuple[cupy.NDArray, cupy.NDArray, cupy.NDArray]
+
+   Simulate the effect of a perturbation to a single node.
+
+   Computes the trajectories in response to a perturbation of the source node
+   index, and returns summed up trajectories and summed up differences (3
+   arrays of N x W). From these arrays, it is possible to compute various
+   summary statistics.
+
+   :param kernel: CuPy RawKernel that provides the update functions.
+   :type kernel: RawKernelType
+   :param source: Index or indices of node(s) to perturb.
+   :type source: int | list[int]
+   :param N: Number of nodes in the network.
+   :type N: int
+   :param T: Number of timesteps to simulate.
+   :type T: int
+   :param W: Number of ensemble walkers to simulate.
+   :type W: int
+   :param T_sample: Number of time points to use for summing (t=T-T_sample+1 to t=T), by
+                    default, `1`.
+   :type T_sample: int, optional
+   :param lookup_tables: A merged lookup table that contains the output column of each rule's
+                         lookup table (padded by `False` values). If provided, it is passed to the
+                         kernel, in which case the kernel must be a lookup-table-based kernel. If
+                         `None` (default), then the kernel must have the update rules internally
+                         encoded.
+   :type lookup_tables: cp.NDArray, optional
+   :param maskfunction: Function that returns a mask for selecting which node values to update.
+                        By default, uses the synchronous update scheme. See
+                        :mod:`cubewalkers.update_schemes` for examples. If the maskfunction is
+                        state-dependent, then the unperturbed trajectory is used.
+   :type maskfunction: MaskFunctionType, optional
+   :param threads_per_block: How many threads should be in each block for each dimension of the N x W
+                             array, by default `(32, 32)`. See CUDA documentation for details.
+   :type threads_per_block: tuple[int, int], optional
+
+   :returns: * **trajU** (*cp.NDArray*) -- The trajectory without perturbation summed from t=T-T_sample+1 to t=T.
+               Dimensions are N x W.
+             * **trajP** (*cp.NDArray*) -- The trajectories in response to the source node perturbation summed from
+               t=T-T_sample+1 to t=T. Dimensions are N x W.
+             * **diff** (*cp.NDArray*) -- The differences in trajU and trajP summed from t=T-T_sample+1 to t=T.
+               Dimensions are N x W.
+
+
+.. py:function:: source_quasicoherence(trajU: cupy.NDArray, trajP: cupy.NDArray, T_sample: int = 1, fuzzy_coherence: bool = False) -> cupy.NDArray
+
+   Estimate the quasicoherence from a set of unperturbed and perturbed
+   trajectories.
+
+   Quasicoherence quantifies the the probability that a perturbation to a
+   trajectory results in the same long-term behavior. Fuzzy quasicoherence is
+   similar, but similarity of long-term behavior is measured on a sliding scale
+   based on average node values, rather than all-or-nothing. Further details at
+   PRX Life 1, 023009: https://doi.org/10.1103/PRXLife.1.023009.
+
+   :param trajU: The N x W array of unperturbed trajectories summed up from
+                 t=T-T_sample+1 to t=T. See See :func:`simulate_perturbation`.
+   :type trajU: cp.NDArray
+   :param trajP: The N x W array of trajectories in response to the source node
+                 perturbation, summed up from t=T-T_sample+1 to t=T. See
+                 :func:`simulate_perturbation`.
+   :type trajP: cp.NDArray
+   :param T_sample: Number of time points to use for averaging (t=T-T_sample+1 to t=T), by
+                    default, `1`.
+   :type T_sample: int, optional
+   :param fuzzy_coherence: If `False` (default), trajectroies are marked as either in agreement (`1`)
+                           or not in agreement (`0`) depending on whether fixed nodes are in
+                           agreement. If `True`, the average absolute difference between state
+                           vectors is used instead.
+   :type fuzzy_coherence: bool, optional
+
+   :returns: The estimated value of the quasicoherence response to the source node
+             perturbation.
+   :rtype: cp.NDArray
+
+
+.. py:function:: source_final_hamming_distance(diff: cupy.NDArray, T_sample: int = 1) -> cupy.NDArray
+
+   Estimate the average asymptotic Hamming distance between a set of
+   unperturbed and perturbed trajectories.
+
+   :param diff: The N x W array of trajectory differences calculated during simulating
+                the response to the source node perturbation. See
+                :func:`simulate_perturbation`.
+   :type diff: cp.NDArray
+   :param T_sample: Number of time points to use for averaging (t=T-T_sample+1 to t=T), by
+                    default, `1`.
+   :type T_sample: int, optional
+
+   :returns: The estimated value of the final hamming distance response to the source
+             node perturbation.
+   :rtype: cp.NDArray
+
+
+.. py:function:: dynamical_impact(kernel: cubewalkers.custom_typing.RawKernelType, source: int | list[int], N: int, T: int, W: int, lookup_tables: cupy.NDArray | None = None, maskfunction: cubewalkers.custom_typing.MaskFunctionType = synchronous, threads_per_block: tuple[int, int] = (32, 32)) -> cupy.NDArray
+
+   Estimates the dynamical impact of a source node.
+
+   Dynamical impact of a source node on a target node at time t is the
+   probability that initial states that differ in only the source node will
+   differ in the target node at time t.
+
+   :param kernel: CuPy RawKernel that provides the update functions.
+   :type kernel: RawKernelType
+   :param source: Index or indices of node(s) to perturb for dynamical impact calculation.
+   :type source: int | list[int]
+   :param N: Number of nodes in the network.
+   :type N: int
+   :param T: Number of timesteps to simulate.
+   :type T: int
+   :param W: Number of ensemble walkers to simulate.
+   :type W: int
+   :param lookup_tables: A merged lookup table that contains the output column of each rule's
+                         lookup table (padded by `False` values). If provided, it is passed to
+                         the kernel, in which case the kernel must be a lookup-table-based
+                         kernel. If `None` (default), then the kernel must have the update rules
+                         internally encoded.
+   :type lookup_tables: cp.NDArray, optional
+   :param maskfunction: Function that returns a mask for selecting which node values to update.
+                        By default, uses the synchronous update scheme. See
+                        :mod:`cupewalkers.update_schemes` for examples. If the maskfunction is
+                        state-dependent, then the unperturbed trajectory is used.
+   :type maskfunction: MaskFunctionType, optional
+   :param threads_per_block: How many threads should be in each block for each dimension of the N x W
+                             array, by default `(32, 32)`. See CUDA documentation for details.
+   :type threads_per_block: tuple[int, int], optional
+
+   :returns: (T+1) x N array of dynamical impacts of the source at each time.
+   :rtype: cp.NDArray
+
+
+.. py:function:: derrida_coefficient(kernel: cubewalkers.custom_typing.RawKernelType, N: int, W: int, lookup_tables: cupy.NDArray | None = None, threads_per_block: tuple[int, int] = (32, 32)) -> float
+
+   Estimates the (synchronous) Derrida coefficient.
+
+   The Derrida coefficent is computed as the mean Hamming distance after one
+   synchronous update between trajectories with initial Hamming distance of
+   one. For analogs using other update schemes, use :func:`dynamical_impact`.
+
+   :param kernel: CuPy RawKernel that provides the update functions.
+   :type kernel: RawKernelType
+   :param N: Number of nodes in the network.
+   :type N: int
+   :param W: Number of ensemble walkers to simulate.
+   :type W: int
+   :param lookup_tables: A merged lookup table that contains the output column of each rule's
+                         lookup table (padded by `False` values). If provided, it is passed to
+                         the kernel, in which case the kernel must be a lookup-table-based
+                         kernel. If `None` (default), then the kernel must have the update rules
+                         internally encoded.
+   :type lookup_tables: cp.NDArray, optional
+   :param threads_per_block: How many threads should be in each block for each dimension of the N x W
+                             array, by default `(32, 32)`. See CUDA documentation for details.
+   :type threads_per_block: tuple[int, int], optional
+
+   :returns: Derrida coefficient
+   :rtype: float
+
+

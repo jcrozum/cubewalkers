@@ -1,0 +1,182 @@
+:py:mod:`cubewalkers.update_schemes`
+====================================
+
+.. py:module:: cubewalkers.update_schemes
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.update_schemes.asynchronous
+   cubewalkers.update_schemes.asynchronous_PBN
+   cubewalkers.update_schemes.asynchronous_set
+   cubewalkers.update_schemes.asynchronous_set_PBN
+   cubewalkers.update_schemes.asynchronous_set_PBN_dependent
+   cubewalkers.update_schemes.synchronous
+   cubewalkers.update_schemes.synchronous_PBN
+   cubewalkers.update_schemes.synchronous_PBN_dependent
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.update_schemes.asynchronous_kernel
+
+
+.. py:data:: asynchronous_kernel
+   :type: cubewalkers.custom_typing.RawKernelType
+
+   
+
+.. py:function:: asynchronous(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that randomly selects a single node to be updated at each timestep.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array.
+   :rtype: cp.NDArray
+
+
+.. py:function:: asynchronous_PBN(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that randomly selects a single node to be updated at each timestep.
+   Passes random values for PBN support. Each value is independently generated for each node.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+
+.. py:function:: asynchronous_set(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that randomly selects a set of nodes to be updated at each timestep.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array.
+   :rtype: cp.NDArray
+
+
+.. py:function:: asynchronous_set_PBN(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that randomly selects a set of nodes to be updated at each timestep.
+   Passes random values for PBN support. Each value is independently generated for each node.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+
+.. py:function:: asynchronous_set_PBN_dependent(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that randomly selects a set of nodes to be updated at each timestep.
+   Passes random values for PBN support. All nodes use the same value,
+   but each walker uses an independently generated value.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+
+.. py:function:: synchronous(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that updates all nodes at each timestep.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+
+.. py:function:: synchronous_PBN(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that updates all nodes at each timestep. Passes random values for PBN
+   support. Each value is indepently generated for each node.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+
+.. py:function:: synchronous_PBN_dependent(t: int, n: int, w: int, a: cupy.NDArray, **kwargs: Any) -> cupy.NDArray
+
+   Update mask that updates all nodes at each timestep. Passes random values for PBN
+   support. All nodes use the same value, but each walker uses an independently generated
+   value.
+
+   :param t: Current timestep value (not used)
+   :type t: int
+   :param n: Number of nodes
+   :type n: int
+   :param w: Number of ensemble walkers
+   :type w: int
+   :param a: Current array of trajectories (not used)
+   :type a: cp.NDArray
+
+   :returns: Update mask array. Entry value can be used by update function for PBN support.
+   :rtype: cp.NDArray
+
+

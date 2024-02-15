@@ -1,0 +1,104 @@
+:py:mod:`cubewalkers.parser`
+============================
+
+.. py:module:: cubewalkers.parser
+
+.. autoapi-nested-parse::
+
+   This module contains methods for constructing CUDA kernels from Boolean networks.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   cubewalkers.parser.clean_rules
+   cubewalkers.parser.adjust_rules_for_experiment
+   cubewalkers.parser.bnet2rawkernel
+   cubewalkers.parser.regulators2lutkernel
+   cubewalkers.parser.name_adjustment
+
+
+
+.. py:function:: clean_rules(rules: str, comment_char: str = '#') -> str
+
+   Initial parsing of rules to standardize format.
+
+   :param rules: Rule string to parse.
+   :type rules: str
+   :param comment_char: Empty lines and lines beginning with this character are ignored, by default `#`.
+   :type comment_char: str, optional
+
+   :returns: A reformatted version of the input rules.
+   :rtype: str
+
+
+.. py:function:: adjust_rules_for_experiment(rules: str, experiment: cubewalkers.experiment.Experiment | None) -> str
+
+   Helper function that adjusts rules to incorporate the experimental conditions
+   specified in the experiment string.
+
+   :param rules: Rules to adjust. Assumes these have been cleaned.
+   :type rules: str
+   :param experiment: Experiment object to use for rule adjustment; if None, do nothing.
+   :type experiment: Experiment | None
+
+   :returns: A new rules string that includes time-dependent modifications according to the
+             experiment string.
+   :rtype: str
+
+
+.. py:function:: bnet2rawkernel(rules: str, kernel_name: str, experiment: cubewalkers.experiment.Experiment | None = None, comment_char: str = '#', skip_clean: bool = False) -> tuple[cubewalkers.custom_typing.RawKernelType, list[str], str]
+
+   Generates a CuPy RawKernel that encodes update rules and experimental conditions.
+
+   :param rules: Rules to input. If skip_clean is True (not default), then these are assumed to have
+                 been cleaned.
+   :type rules: str
+   :param kernel_name: A name for the kernel
+   :type kernel_name: str
+   :param experiment: An Experiment object specifying experimental conditions, by default None, in which
+                      case no experimental conditions are incorporated into the rules.
+   :type experiment: Experiment | None, optional
+   :param comment_char: In rules, empty lines and lines beginning with this character are ignored, by default
+                        `#`.
+   :type comment_char: str, optional
+   :param skip_clean: Whether to skip the step of cleaning the rules, by default False.
+   :type skip_clean: bool, optional
+
+   :returns: * *RawKernelType* -- A CuPy RawKernel that is called to compute time evolution.
+             * *list[str]* -- A list of strings that encode the variable names
+             * *str* -- A string containing the CUDA-C++ body of the kernel
+
+
+.. py:function:: regulators2lutkernel(node_regulators: Iterable[Iterable[int]], kernel_name: str) -> tuple[cubewalkers.custom_typing.RawKernelType, str]
+
+   Constructs a CuPy RawKernel that simulates a network using lookup tables.
+
+   :param node_regulators: Iterable i should contain the indicies of the nodes that regulate node i,
+                           optionally padded by negative values.
+   :type node_regulators: Iterable[Iterable[int]]
+   :param kernel_name: Name of the kernel to be generated.
+   :type kernel_name: str
+
+   :returns: * *RawKernelType* -- A CuPy RawKernel that is called to compute time evolution.
+             * *str* -- A string containing the CUDA-C++ body of the kernel
+
+
+.. py:function:: name_adjustment(name: str) -> str
+
+   Adjust the node name to fit proper formatting.
+
+   :param name: Original name of the node.
+   :type name: str
+
+   :returns: Adjusted name of the node.
+   :rtype: str
+
+
