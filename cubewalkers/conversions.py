@@ -52,6 +52,45 @@ def cana2cupyLUT(
     return out_columns, in_columns
 
 
+def cana2cupy_probabilisticLUT(
+    net: BooleanNetwork, prob: float = 0.0
+) -> tuple[cp.NDArray, cp.NDArray]:
+    """
+    Extract probabilistic lookup tables and input lists from a CANA network into a CuPy-compatible form.
+
+    For more information about CANA, see: https://github.com/rionbr/CANA.
+
+    Parameters
+    ----------
+    net : cana.BooleanNetwork
+        CANA network to import.
+
+    Returns
+    -------
+    tuple[NDArray, NDArray]
+        Returns a merged lookup table that contains the float output column of each rule's
+        lookup table, where "1" is reduced by prob, and "0" is increasd by prob.
+        i.e. if the prob = 0.01, then the LUT outputs are 0.01 for False and 0.99 for True.
+        The LUT is padded by False values (0 + prob) so every LUT is of the same size.
+        Also returns an inputs table, which contains the inputs for each node (padded by -1).
+    """
+    network_nodes: list[BooleanNode] = net.nodes  # type: ignore
+    outs = [u.outputs for u in network_nodes]
+    outmax = len(max(outs, key=lambda x: len(x)))
+
+    outs_float = [
+        [1 - prob if x == "1" else prob for x in out]
+        + [False] * (outmax - len(out))  # padded for cupy
+        for out in outs
+    ]
+    inps = [u.inputs for u in network_nodes]
+    inpmax = len(max(inps, key=lambda x: len(x)))
+    inps_pad = [inp + [-1] * (inpmax - len(inp)) for inp in inps]
+    out_columns: cp.NDArray = cp.array(outs_float, dtype=cp.float32)  # type: ignore
+    in_columns: cp.NDArray = cp.array(inps_pad, dtype=cp.int32)  # type: ignore
+    return out_columns, in_columns
+
+
 def node_rule_from_cana(
     node: BooleanNode, int2name: dict[int, str] | None = None
 ) -> str:

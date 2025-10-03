@@ -236,6 +236,65 @@ def regulators2lutkernel(
     kernel: RawKernelType = cp.RawKernel(cpp_body, kernel_name)  # type: ignore
     return kernel, cpp_body  # type: ignore
 
+def regulators2probabilisticlutkernel(
+    node_regulators: Iterable[Iterable[int]], kernel_name: str, 
+) -> tuple[RawKernelType, str]:
+    """
+    Constructs a CuPy RawKernel that simulates a network using lookup tables.
+    Same as regulators2lutkernel, but with float LUTs for a probabilistic network.
+
+    Parameters
+    ----------
+    node_regulators : Iterable[Iterable[int]]
+        Iterable i should contain the indicies of the nodes that regulate node i,
+        optionally padded by negative values.
+    kernel_name : str
+        Name of the kernel to be generated.
+
+    Returns
+    -------
+    RawKernelType
+        A CuPy RawKernel that is called to compute time evolution.
+    str
+        A string containing the CUDA-C++ body of the kernel
+    """
+
+    cpp_body = (
+        f'extern "C" __global__\n'
+        f"void {kernel_name}(const bool* A__reserved_input,\n"
+        f"        const float* A__reserved_mask,\n"
+        f"        bool* A__reserved_output,\n"
+        f"        const float* A__reserved_LUT,\n" # CHANGED BOOL TO FLOAT
+        f"        int t__reserved, int N__reserved, int W__reserved, int L__reserved) {{\n"
+        f"    int w__reserved = blockDim.x * blockIdx.x + threadIdx.x;\n"
+        f"    int n__reserved = blockDim.y * blockIdx.y + threadIdx.y;\n"
+        f"    int a__reserved = w__reserved + n__reserved*W__reserved;\n"
+        f"    if(n__reserved < N__reserved && w__reserved < W__reserved){{\n"
+        f"        if(A__reserved_mask[a__reserved]>0){{\n" 
+    )
+
+    for ln, regulator_input in enumerate(node_regulators):
+        lookup_index = "0"
+        for ind in regulator_input:
+            if ind < 0:
+                break
+            lookup_index = (
+                f"({lookup_index}<<1)"
+                f"+A__reserved_input[{ind}*W__reserved+w__reserved]"
+            )
+
+        cpp_body += (
+            f"if (n__reserved=={ln}){{"
+            f"A__reserved_output[a__reserved]="
+            f"(A__reserved_LUT[({lookup_index})+L__reserved*n__reserved]>= A__reserved_mask[a__reserved]);}}\n"
+        )
+    cpp_body += (
+        "\n} else{A__reserved_output[a__reserved]=A__reserved_input[a__reserved];}}}"
+    )
+
+    # print(cpp_body)
+    kernel: RawKernelType = cp.RawKernel(cpp_body, kernel_name)  # type: ignore
+    return kernel, cpp_body  # type: ignore
 
 def name_adjustment(name: str) -> str:
     """

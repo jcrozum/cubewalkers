@@ -42,6 +42,7 @@ class Model:
         comment_char: str = "#",
         n_time_steps: int = 1,
         n_walkers: int = 1,
+        probabilistic_lut: bool = False,
     ) -> None:
         """
         Parameters
@@ -81,6 +82,11 @@ class Model:
             Number of timesteps to simulate, by default `1`.
         n_walkers: int, optional
             Number of ensemble walkers to simulate, by default `1`.
+        probabilistic_lut: bool, optional
+            If `True`, the lookup tables are treated as probabilistic, and the
+            kernel is generated accordingly. If `False`, the lookup tables are
+            treated as boolean, and the kernel is generated accordingly. By
+            default `False`.
         """
         self.name = ""
         if model_name is None:
@@ -100,6 +106,7 @@ class Model:
         self.rules = rules
         self.node_regulators = node_regulators
         self.lookup_tables = lookup_tables
+        self.probabilistic_lut = probabilistic_lut
         if rules is not None:
             self.mode = "algebraic"
             if (
@@ -122,9 +129,12 @@ class Model:
                 raise TypeError(
                     "Must specify node_regulators and lookup_tables if rules are not provided."
                 )
-            self.kernel, self.code = parser.regulators2lutkernel(
-                self.node_regulators, self.name
-            )
+            if probabilistic_lut:
+                self.kernel, self.code = parser.regulators2probabilisticlutkernel(
+                self.node_regulators, self.name) # reutrns float LUT values
+            else:
+                self.kernel, self.code = parser.regulators2lutkernel(
+                    self.node_regulators, self.name) # returns boolean LUT values
             if lookup_table_varnames is None:
                 self.varnames = [f"x{i}" for i in range(len(lookup_tables))]
             else:
@@ -181,6 +191,12 @@ class Model:
         """
 
         if self.n_walkers != self.initial_states.shape[1]:
+            warnings.warn(
+            "n_walkers (%d) does not match existing initial_states (%d); "
+            "reinitializing walkers to match n_walkers."
+            % (self.n_walkers, self.initial_states.shape[1]),
+            UserWarning,
+            )
             self.initialize_walkers()
 
         self.averages_only = averages_only
