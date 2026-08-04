@@ -233,9 +233,9 @@ class Model:
             n_time_steps = self.n_time_steps
         if n_walkers is None:
             n_walkers = self.n_walkers
-
+        
         walkers_initial_state: cp.NDArray = cp.array(  # type: ignore
-            [cp.bool_(initial_state) for _ in range(n_walkers)]
+            [initial_state.astype(cp.bool_) for _ in range(n_walkers)]
         ).T
 
         avgs = simulation.simulate_ensemble(

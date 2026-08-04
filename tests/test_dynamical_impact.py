@@ -39,6 +39,7 @@ def test_trajectory_variance():
     mymodel = cw.Model(rules)
     mymodel.n_time_steps = 3
     mymodel.n_walkers = 30
+    initial_state = cp.array([1, 1, 1, 1])
 
-    trajectory_variance = mymodel.trajectory_variance([1, 1, 1, 1])
+    trajectory_variance = mymodel.trajectory_variance(initial_state)
     assert all([(trajectory_variance[i] == 0.).sum() >= 4-i for i in range(4)])
